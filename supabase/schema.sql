@@ -92,3 +92,6 @@ end;
 $function$;
 revoke all on function public.register_unlock_attempt(text) from public, anon, authenticated;
 grant execute on function public.register_unlock_attempt(text) to service_role;
+
+-- Refresh PostgREST metadata after adding columns and RPCs.
+notify pgrst, 'reload schema';
