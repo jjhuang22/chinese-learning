@@ -77,6 +77,8 @@ p {
   background: #f0f1e9;
 }
 .brand {
+  align-self: flex-start;
+  margin-bottom: 32px;
   display: flex;
   align-items: center;
   gap: 13px;
@@ -653,6 +655,7 @@ main {
   padding: 65px 20px;
   color: #92a180;
 }
+.empty-state h1,
 .empty-state h2 {
   color: var(--ink);
   font-family: Georgia, serif;

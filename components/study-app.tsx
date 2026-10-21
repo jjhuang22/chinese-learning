@@ -1,16 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  BookOpen,
-  Library,
-  Layers,
-  Check,
-  Plus,
-  X,
-  Settings,
-  LogOut,
-} from "lucide-react";
-import Dialog from "./dialog";
+import { BookOpen, Library, Layers, Check, Plus, X } from "lucide-react";
 import Reader from "./reader";
 import Review from "./review";
 import LessonLibrary from "./lesson-library";
@@ -72,7 +62,6 @@ export default function StudyApp({
   const [modal, setModal] = useState<Suggestion | null>(null);
   const [selection, setSelection] = useState<Pick | null>(null);
   const [importing, setImporting] = useState(false);
-  const [settings, setSettings] = useState(false);
   const [notice, setNotice] = useState("");
   const reader = useRef<HTMLDivElement>(null);
   const lesson = lessons.find((l) => l.id === lessonId) ??
@@ -158,6 +147,7 @@ export default function StudyApp({
     setNotice("Saved to your review deck");
   }
   function captureSelection() {
+    if (page !== "today" || lessons.length === 0) return;
     const sel = window.getSelection();
     const text = sel?.toString().trim();
     if (
@@ -169,6 +159,7 @@ export default function StudyApp({
       return;
     const a = sel.anchorNode?.parentElement?.closest("[data-sentence]");
     const f = sel.focusNode?.parentElement?.closest("[data-sentence]");
+    if (!a || !f) return;
     const context = a === f ? (a?.getAttribute("data-sentence") ?? text) : text;
     setSelection({ text, sentence: context, lessonId: lesson.id });
   }
@@ -202,30 +193,44 @@ export default function StudyApp({
     };
     setModal(draft);
   }
-  async function lockApp() {
-    try {
-      const response = await fetch("/api/lock", { method: "POST" });
-      if (!response.ok) throw new Error();
-      returnToLock();
-    } catch {
-      setNotice("Could not lock the app. Check your connection and try again.");
-    }
+  function exportProgress() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "everyday-chinese-progress.json";
+    link.click();
+    URL.revokeObjectURL(url);
   }
+  const emptyLessons = (
+    <section className="empty-state">
+      <BookOpen size={34} />
+      <h1>No lessons yet</h1>
+      <p>Import a lesson to start reading.</p>
+      <button className="primary" onClick={() => setImporting(true)}>
+        <Plus size={16} /> Import your first lesson
+      </button>
+    </section>
+  );
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="/" aria-label="Everyday Chinese home">
-          <span className="brand-mark">日</span>
-          <span>
-            日常<small>EVERYDAY CHINESE</small>
+        <button
+          className="brand"
+          aria-label="Today"
+          onClick={() => navigate("today")}
+        >
+          <span className="brand-mark" lang="zh-Hant">
+            日
           </span>
-        </a>
-
+        </button>
         <nav>
           {(
             [
               { id: "today", label: "Today", icon: BookOpen },
-              { id: "library", label: "Library", icon: Library },
+              { id: "library", label: "Archive", icon: Library },
               { id: "review", label: "Review", icon: Layers },
             ] as const
           ).map((item) => (
@@ -242,15 +247,6 @@ export default function StudyApp({
             </button>
           ))}
         </nav>
-        <div className="sidebar-bottom">
-          <button className="settings-button" onClick={() => setSettings(true)}>
-            <Settings size={17} /> Settings & account
-          </button>
-          <div className="connection">
-            <span className={!localDemo ? "dot connected" : "dot"} />
-            {!localDemo ? "Private cloud sync" : "Saved on this device"}
-          </div>
-        </div>
       </aside>
       <main>
         <header className="topbar">
@@ -258,17 +254,10 @@ export default function StudyApp({
             {page === "today"
               ? "Today"
               : page === "library"
-                ? "Library"
+                ? "Archive"
                 : "Review"}
           </span>
           <div className="topbar-right">
-            <button
-              aria-label="Open settings"
-              className="mobile-settings icon-button"
-              onClick={() => setSettings(true)}
-            >
-              <Settings size={20} />
-            </button>
             <button
               className="text-button import-trigger"
               onClick={() => setImporting(true)}
@@ -284,30 +273,40 @@ export default function StudyApp({
         {syncError && (
           <div className="warning">
             {syncError}{" "}
-            {!conflict && <button onClick={retrySync}>Retry sync</button>}
+            {conflict ? (
+              <button onClick={exportProgress}>Export unsaved progress</button>
+            ) : (
+              <button onClick={retrySync}>Retry sync</button>
+            )}
           </div>
         )}
         <div className="content" ref={reader}>
-          {page === "today" && (
-            <Reader
-              key={lesson.id}
-              lesson={lesson}
-              state={state}
-              setState={setState}
-              setModal={setModal}
-              setNotice={setNotice}
-              saveCard={saveCard}
-              captureSelection={captureSelection}
-              clearSelection={() => setSelection(null)}
-            />
-          )}
-          {page === "library" && (
-            <LessonLibrary
-              lessons={lessons}
-              state={state}
-              openLesson={openLesson}
-            />
-          )}
+          {page === "today" &&
+            (lessons.length === 0 ? (
+              emptyLessons
+            ) : (
+              <Reader
+                key={lesson.id}
+                lesson={lesson}
+                state={state}
+                setState={setState}
+                setModal={setModal}
+                setNotice={setNotice}
+                saveCard={saveCard}
+                captureSelection={captureSelection}
+                clearSelection={() => setSelection(null)}
+              />
+            ))}
+          {page === "library" &&
+            (lessons.length === 0 ? (
+              emptyLessons
+            ) : (
+              <LessonLibrary
+                lessons={lessons}
+                state={state}
+                openLesson={openLesson}
+              />
+            ))}
           {page === "review" && (
             <Review
               state={state}
@@ -323,7 +322,7 @@ export default function StudyApp({
         {(
           [
             { id: "today", label: "Today", icon: BookOpen },
-            { id: "library", label: "Library", icon: Library },
+            { id: "library", label: "Archive", icon: Library },
             { id: "review", label: "Review", icon: Layers },
           ] as const
         ).map((item) => (
@@ -416,67 +415,6 @@ export default function StudyApp({
             );
           }}
         />
-      )}
-      {settings && (
-        <Dialog title="Your daily practice" onClose={() => setSettings(false)}>
-          <div className="settings-section">
-            <span className="eyebrow">READING ROUTINE</span>
-            <h3>Import from ChatGPT</h3>
-            <p>
-              Traditional characters, Taiwan Mandarin. Two connected passages
-              with occasional variations in format.
-            </p>
-            <p className="muted">
-              Paste your ChatGPT lesson using Import lesson. No API key or
-              separate AI billing is needed. For custom cards, edit the
-              suggested pinyin and enter the meaning yourself.
-            </p>
-          </div>
-          <div className="settings-section">
-            <h3>Private access</h3>
-            {localDemo ? (
-              <p>This local prototype saves on this device.</p>
-            ) : (
-              <>
-                <p>
-                  This device stays unlocked for 30 days. Your lessons and cards
-                  sync privately to Supabase.
-                </p>
-                <button className="secondary" onClick={lockApp}>
-                  <LogOut size={16} />
-                  Lock this device
-                </button>
-              </>
-            )}
-          </div>
-          <div className="settings-section">
-            <h3>On your iPhone</h3>
-            <p>
-              Open the deployed website in Safari, then Share → Add to Home
-              Screen. Your passcode gives this device access to the same private
-              library.
-            </p>
-          </div>
-          <div className="settings-section">
-            <h3>Keep a backup</h3>
-            <button
-              className="secondary"
-              onClick={() => {
-                const blob = new Blob([JSON.stringify(state, null, 2)], {
-                  type: "application/json",
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "everyday-chinese-progress.json";
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-            >
-              Export progress
-            </button>
-          </div>
-        </Dialog>
       )}
       {notice && (
         <div className="toast" role="status">

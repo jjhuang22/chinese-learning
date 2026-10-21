@@ -1,4 +1,4 @@
-# 日常 · Everyday Chinese
+# Chinese Learning
 
 A single-learner Traditional Chinese reading and flashcard app. Generate lessons in your existing ChatGPT conversation or automation, import the JSON, then read with sentence-level pinyin and review expressions you choose to save.
 
@@ -58,7 +58,7 @@ Demo servers are for trusted local use. The commands bind to all network interfa
 - Review up to 12 due cards. **Keep reviewing** requeues a card once per session and schedules another review in 1–7 days. **Understand already** archives it; an optional refresher becomes available after 30 days.
 - Browse, edit, archive, or restore cards. Mark lessons read and record difficulty feedback.
 
-Lessons are stored individually in `lessons`. Cards, dismissed suggestions, read markers, and feedback share one JSON document in `learner_state`. Cloud saves happen after edits, one request at a time. A revision check rejects stale saves from another tab/device. If a conflict appears, export your progress from Settings before reloading; conflicts are not merged automatically.
+Lessons are stored individually in `lessons`. Cards, dismissed suggestions, read markers, and feedback share one JSON document in `learner_state`. Cloud saves happen after edits, one request at a time. A revision check rejects stale saves from another tab/device. If a conflict appears, use **Export unsaved progress** in the conflict warning before reloading; conflicts are not merged automatically.
 
 ## Import lessons
 
@@ -78,6 +78,6 @@ Run a suite separately with `npm test`, `npm run test:database`, `npm run test:p
 
 ## Current limits
 
-Review scheduling is intentionally simple. Progress is saved as a whole document (up to 5,000 cards and a 2 MB request), with conflict detection rather than automatic merging. **Export progress** includes cards and progress, not lesson texts; there is no restore UI yet.
+Review scheduling is intentionally simple. Progress is saved as a whole document (up to 5,000 cards and a 2 MB request), with conflict detection rather than automatic merging. The conflict warning offers **Export unsaved progress**, which includes cards and progress but not lesson texts; there is no restore UI yet.
 
 Home Screen installation is supported. Offline reading and push notifications are not implemented. ChatGPT generation stays separate: the app has no AI generation endpoint or scheduled generation job, and does not send feedback or card history back to ChatGPT. Pinyin and definitions need human review. Native iPhone Safari text selection still needs device testing.

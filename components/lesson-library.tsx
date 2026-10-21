@@ -18,14 +18,11 @@ export default function LessonLibrary({
 }) {
   return (
     <>
-      <span className="eyebrow">YOUR READING SHELF</span>
-      <div className="page-heading">
-        <h1>Every lesson, kept.</h1>
-        <p>Pick up where you left off, or return to a familiar passage.</p>
-      </div>
       <div className="library-summary">
         <BookOpen size={20} />
-        <span>{lessons.length} lessons</span>
+        <span>
+          {lessons.length} {lessons.length === 1 ? "lesson" : "lessons"}
+        </span>
         <span className="meta-divider" />
         <span>{state.read.length} read</span>
       </div>

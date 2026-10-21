@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "日常 · Everyday Chinese",
+  title: "Chinese Learning",
   description:
     "A little reading. A little repetition. Chinese that stays with you.",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "日常" },

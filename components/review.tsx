@@ -78,14 +78,6 @@ export default function Review({
   );
   return (
     <>
-      <span className="eyebrow">MAKE IT STICK</span>
-      <div className="page-heading">
-        <h1>
-          A little repetition.
-          <br />A lasting vocabulary.
-        </h1>
-        <p>Your words and patterns, with the context that made them matter.</p>
-      </div>
       {session ? (
         <section className="review-session">
           <div className="session-header">
@@ -171,10 +163,6 @@ export default function Review({
               <h2>
                 {due.length} <span>cards to revisit</span>
               </h2>
-              <p>
-                A short session. Up to 12 cards, plus a second look at the ones
-                you keep.
-              </p>
             </div>
             <button
               className="primary"
@@ -239,11 +227,7 @@ export default function Review({
           {!browse.length ? (
             <div className="empty-state">
               <Layers size={34} />
-              <h2>
-                {state.cards.length
-                  ? "Nothing here right now."
-                  : "Your vocabulary starts with a phrase."}
-              </h2>
+              {state.cards.length > 0 && <h2>Nothing here right now.</h2>}
               <p>
                 {state.cards.length
                   ? "Try another view, or return when cards are due."

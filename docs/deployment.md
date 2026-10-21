@@ -32,29 +32,29 @@ Use the repository root as Vercel's Root Directory; [vercel.json](../vercel.json
 3. Import [example-lesson.json](../public/example-lesson.json), using a valid unused date. Reload and verify the lesson persists.
 4. Save a card, mark a lesson read, and verify both after reload. Try a second device.
 5. Open two tabs, save in one, then edit the other. The stale tab should report a conflict without replacing the first tab's work.
-6. Use Settings → **Lock this device** and confirm the library is protected again.
+6. Rotate the passcode in Vercel and redeploy when you need to invalidate access on all devices.
 
 Automated tests use synthetic accounts. These checks verify your actual project configuration; native iPhone Safari selection needs a physical device.
 
 ## Sessions and saves
 
-Sessions last 30 days. The cookie is HttpOnly, SameSite=Strict, and Secure on Vercel/HTTPS. Its HMAC signing key derives from the service key, passcode, and learner UUID. Changing any of those values invalidates app sessions after redeployment. Locking clears only the current device's cookie; rotating the passcode invalidates all devices.
+Sessions last 30 days. The cookie is HttpOnly, SameSite=Strict, and Secure on Vercel/HTTPS. Its HMAC signing key derives from the service key, passcode, and learner UUID. Changing any of those values invalidates app sessions after redeployment. The Settings panel has been removed; rotate the passcode to invalidate all devices. The server still exposes `/api/lock` to clear the current device cookie.
 
 All learning-data queries run on the server and scope to `LEARNER_USER_ID`. Supabase browser roles cannot access lessons or progress after the current schema is applied. The unlock limiter permits five attempts per client and 100 globally per 15-minute window, stores keyed client hashes, and fails closed if unavailable.
 
-Progress stays in memory until saved; it is not mirrored into browser storage in protected mode. Keep the tab open after a save failure and retry. For a conflict, use Settings → **Export progress** before reloading. The export contains progress and cards only, with no restore UI. Keep a separate Supabase backup for the full library. Previously authorized devices may retain content they have already loaded.
+Progress stays in memory until saved; it is not mirrored into browser storage in protected mode. Keep the tab open after a save failure and retry. For a conflict, use **Export unsaved progress** in the conflict warning before reloading. The conflict export contains progress and cards only, with no restore UI. Keep a separate Supabase backup for the full library. Previously authorized devices may retain content they have already loaded.
 
 ## Troubleshooting
 
-| Symptom                          | Check                                                                                         |
-| -------------------------------- | --------------------------------------------------------------------------------------------- |
-| Incomplete setup                 | All four variables, valid UUID, passcode length, server key, then redeploy                    |
-| Unlocking unavailable            | Apply the entire current SQL schema and verify the database connection                        |
-| Too many attempts                | Wait up to 15 minutes; successful unlocks also count toward the limits                        |
-| Library fails to load            | Database availability, schema, learner UUID, and any manually imported lesson data            |
-| Save fails after an upgrade      | Apply the revision column/function, then reload old app tabs after exporting unsaved progress |
-| Progress conflict                | Export unsaved progress, reload to see the latest saved state, and reapply needed changes     |
-| Local development skips the gate | `npm run dev` is always a demo outside Vercel; build, then use `LOCAL_DEMO=0 npm run start`   |
+| Symptom                          | Check                                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Incomplete setup                 | All four variables, valid UUID, passcode length, server key, then redeploy                     |
+| Unlocking unavailable            | Apply the entire current SQL schema and verify the database connection                         |
+| Too many attempts                | Wait up to 15 minutes; successful unlocks also count toward the limits                         |
+| Library fails to load            | Database availability, schema, learner UUID, and any manually imported lesson data             |
+| Save fails after an upgrade      | Apply the revision column/function, then reload old app tabs after preserving unsaved progress |
+| Progress conflict                | Export unsaved progress, reload to see the latest saved state, and reapply needed changes      |
+| Local development skips the gate | `npm run dev` is always a demo outside Vercel; build, then use `LOCAL_DEMO=0 npm run start`    |
 
 ## Administrative imports
 
