@@ -11,12 +11,10 @@ import {
   ChevronRight,
   Plus,
   X,
-  Settings,
   RotateCcw,
   Archive,
   Search,
   Type,
-  LogOut,
   CheckCheck,
 } from "lucide-react";
 import Dialog from "./dialog";
@@ -92,7 +90,6 @@ export default function StudyApp({
   const [modal, setModal] = useState<Suggestion | null>(null);
   const [selection, setSelection] = useState<Pick | null>(null);
   const [importing, setImporting] = useState(false);
-  const [settings, setSettings] = useState(false);
   const [notice, setNotice] = useState("");
   const [syncError, setSyncError] = useState("");
   const [storageError, setStorageError] = useState("");
@@ -258,6 +255,7 @@ export default function StudyApp({
     }));
   }
   function captureSelection() {
+    if (page !== "today" || lessons.length === 0) return;
     const sel = window.getSelection();
     const text = sel?.toString().trim();
     if (
@@ -269,6 +267,7 @@ export default function StudyApp({
       return;
     const a = sel.anchorNode?.parentElement?.closest("[data-sentence]");
     const f = sel.focusNode?.parentElement?.closest("[data-sentence]");
+    if (!a || !f) return;
     const context = a === f ? (a?.getAttribute("data-sentence") ?? text) : text;
     setSelection({ text, sentence: context, lessonId: lesson.id });
   }
@@ -335,16 +334,6 @@ export default function StudyApp({
     if (await persistProgress(stateRef.current))
       setNotice("Your progress is synced.");
   }
-  async function lockApp() {
-    try {
-      const response = await fetch("/api/lock", { method: "POST" });
-      if (!response.ok) throw new Error();
-      localStorage.removeItem(STORAGE);
-      returnToLock();
-    } catch {
-      setNotice("Could not lock the app. Check your connection and try again.");
-    }
-  }
   function startSession() {
     setSession(due.slice(0, 12).map((c) => c.id));
     setCursor(0);
@@ -392,14 +381,33 @@ export default function StudyApp({
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
+  const emptyLessons = (
+    <section className="empty-state">
+      <BookOpen size={34} />
+      <h1>No lessons yet</h1>
+      <p>Import a lesson to start reading.</p>
+      <button className="primary" onClick={() => setImporting(true)}>
+        <Plus size={16} /> Import your first lesson
+      </button>
+    </section>
+  );
   return (
     <div className="app-shell">
       <aside className="sidebar">
+        <button
+          className="brand"
+          aria-label="Today"
+          onClick={() => navigate("today")}
+        >
+          <span className="brand-mark" lang="zh-Hant">
+            日
+          </span>
+        </button>
         <nav>
           {(
             [
               { id: "today", label: "Today", icon: BookOpen },
-              { id: "library", label: "Library", icon: Library },
+              { id: "library", label: "Archive", icon: Library },
               { id: "review", label: "Review", icon: Layers },
             ] as const
           ).map((item) => (
@@ -416,29 +424,17 @@ export default function StudyApp({
             </button>
           ))}
         </nav>
-        <div className="sidebar-bottom">
-          <button className="settings-button" onClick={() => setSettings(true)}>
-            <Settings size={17} /> Settings
-          </button>
-          <div className="connection">
-            <span className={!localDemo ? "dot connected" : "dot"} />
-            {!localDemo ? "Private cloud sync" : "Saved on this device"}
-          </div>
-        </div>
       </aside>
       <main>
         <header className="topbar">
           <span className="breadcrumb">
-            {page === "today" ? "Today" : page === "review" ? "Review" : ""}
+            {page === "today"
+              ? "Today"
+              : page === "review"
+                ? "Review"
+                : "Archive"}
           </span>
           <div className="topbar-right">
-            <button
-              aria-label="Open settings"
-              className="mobile-settings icon-button"
-              onClick={() => setSettings(true)}
-            >
-              <Settings size={20} />
-            </button>
             <button
               className="text-button import-trigger"
               onClick={() => setImporting(true)}
@@ -455,302 +451,327 @@ export default function StudyApp({
           </div>
         )}
         <div className="content" ref={reader}>
-          {page === "today" && (
-            <>
-              <div className="page-eyebrow">
-                <span className="date">{dateLabel(lesson.date)}</span>
-              </div>
-              <div className="lesson-heading">
-                <h1 lang="zh-Hant">{lesson.title}</h1>
-              </div>
-              <div className="reader-toolbar">
-                <div>
-                  <span className="tiny-dot" />
-                  Tap text for pinyin, highlights for meaning. Select a phrase
-                  to make a card.
+          {page === "today" &&
+            (lessons.length === 0 ? (
+              emptyLessons
+            ) : (
+              <>
+                <div className="page-eyebrow">
+                  <span className="date">{dateLabel(lesson.date)}</span>
                 </div>
-                <button
-                  className={`toggle ${showAll ? "on" : ""}`}
-                  onClick={() => setShowAll((v) => !v)}
-                  aria-pressed={showAll}
-                >
-                  <Type size={16} />
-                  <span>Show all pinyin</span>
-                  <span className="switch" />
-                </button>
-              </div>
-              <div
-                className="reader"
-                onMouseUp={captureSelection}
-                onTouchEnd={captureSelection}
-              >
-                {lesson.passages.map((passage, p) => (
-                  <section className="passage" key={p}>
-                    <div className="passage-heading">
-                      <span className="passage-number">0{p + 1}</span>
-                      <div>
-                        <h2 lang="zh-Hant">{passage.title}</h2>
-                      </div>
-                    </div>
-                    <div className="chinese-text" lang="zh-Hant">
-                      {paragraphGroups(passage).map((group, paragraphIndex) => (
-                        <p className="reading-paragraph" key={paragraphIndex}>
-                          {group.map(({ sentence: s, index: i }) => {
-                            const key = `${p}-${i}`;
-                            const visible = showAll || revealed.includes(key);
-                            return (
-                              <span
-                                className="sentence-block"
-                                key={key}
-                                data-sentence={s.text}
-                              >
-                                <span
-                                  className="sentence"
-                                  role="button"
-                                  tabIndex={0}
-                                  aria-label={`Pronunciation: ${s.text}`}
-                                  aria-expanded={visible}
-                                  onKeyDown={(e) => {
-                                    if (e.target !== e.currentTarget) return;
-                                    if (e.key === "Enter" || e.key === " ") {
-                                      e.preventDefault();
-                                      setRevealed((prev) =>
-                                        prev.includes(key)
-                                          ? prev.filter((k) => k !== key)
-                                          : [...prev, key],
-                                      );
-                                    }
-                                  }}
-                                  onClick={() => {
-                                    if (window.getSelection()?.toString())
-                                      return;
-                                    setSelection(null);
-                                    setRevealed((prev) =>
-                                      prev.includes(key)
-                                        ? prev.filter((k) => k !== key)
-                                        : [...prev, key],
-                                    );
-                                  }}
-                                >
-                                  {textParts(s.text)}
-                                </span>
-                                {visible && (
-                                  <span lang="zh-Latn" className="pinyin-line">
-                                    {s.pinyin}
-                                  </span>
-                                )}
-                              </span>
-                            );
-                          })}
-                        </p>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-              {(lesson.notes ?? []).length > 0 && (
-                <section className="usage-notes">
-                  {lesson.notes.map((note, i) => (
-                    <details key={i}>
-                      <summary lang="zh-Hant">
-                        {note.title}
-                        <Plus size={16} />
-                      </summary>
-                      <div
-                        className="usage-note-text"
-                        data-sentence={note.text}
-                      >
-                        {note.text}
-                      </div>
-                    </details>
-                  ))}
-                </section>
-              )}
-              <div className="reading-complete">
-                <button
-                  className={
-                    state.read.includes(lesson.id) ? "secondary" : "primary"
-                  }
-                  onClick={() =>
-                    setState((prev) => ({
-                      ...prev,
-                      read: prev.read.includes(lesson.id)
-                        ? prev.read.filter((id) => id !== lesson.id)
-                        : [...prev.read, lesson.id],
-                    }))
-                  }
-                >
-                  <CheckCheck size={18} />
-                  {state.read.includes(lesson.id)
-                    ? "Lesson read"
-                    : "Mark as read"}
-                </button>
-                <div className="difficulty">
-                  <span>How did this feel?</span>
-                  {["Too easy", "About right", "Too hard"].map((f) => (
-                    <button
-                      className={
-                        state.feedback[lesson.id] === f ? "selected" : ""
-                      }
-                      key={f}
-                      onClick={() =>
-                        setState((prev) => ({
-                          ...prev,
-                          feedback: { ...prev.feedback, [lesson.id]: f },
-                        }))
-                      }
-                    >
-                      {f}
-                    </button>
-                  ))}
+                <div className="lesson-heading">
+                  <h1 lang="zh-Hant">{lesson.title}</h1>
                 </div>
-              </div>
-              <section className="suggestions">
-                <div className="section-title">
+                <div className="reader-toolbar">
                   <div>
-                    <h2>Suggested cards</h2>
+                    <span className="tiny-dot" />
+                    Tap text for pinyin, highlights for meaning. Select a phrase
+                    to make a card.
                   </div>
                   <button
-                    className="secondary"
-                    disabled={!pending.length}
-                    onClick={() => {
-                      const additions: Card[] = pending
-                        .filter(
-                          (s, i, a) =>
-                            a.findIndex((x) => x.text === s.text) === i,
-                        )
-                        .map((s) => ({
-                          ...s,
-                          lessonId: lesson.id,
-                          status: "active",
-                          dueAt: Date.now(),
-                          reviews: 0,
-                          createdAt: Date.now(),
-                        }));
-                      setState((prev) => ({
-                        ...prev,
-                        cards: [...prev.cards, ...additions],
-                      }));
-                      setNotice(`${additions.length} cards saved`);
-                    }}
+                    className={`toggle ${showAll ? "on" : ""}`}
+                    onClick={() => setShowAll((v) => !v)}
+                    aria-pressed={showAll}
                   >
-                    <Plus size={16} />
-                    Save remaining ({pending.length})
+                    <Type size={16} />
+                    <span>Show all pinyin</span>
+                    <span className="switch" />
                   </button>
                 </div>
-                <div className="suggestion-grid">
-                  {lesson.suggestions.map((s) => {
-                    const saved = findCard(state.cards, s.text);
-                    const dismissed = state.dismissed.includes(s.id);
-                    return (
-                      <article
-                        key={s.id}
-                        className={`suggestion-card ${dismissed ? "dismissed" : ""}`}
-                      >
-                        <div className="suggestion-top">
-                          <span className="kind">
-                            {s.kind === "grammar" ? "PATTERN" : "EXPRESSION"}
-                          </span>
-                          {!saved && (
-                            <button
-                              className="icon-button"
-                              aria-label={`${dismissed ? "Undo dismissal of" : "Dismiss"} ${s.text}`}
-                              onClick={() => dismiss(s)}
-                            >
-                              {dismissed ? (
-                                <RotateCcw size={15} />
-                              ) : (
-                                <X size={15} />
-                              )}
-                            </button>
-                          )}
+                <div
+                  className="reader"
+                  onMouseUp={captureSelection}
+                  onTouchEnd={captureSelection}
+                >
+                  {lesson.passages.map((passage, p) => (
+                    <section className="passage" key={p}>
+                      <div className="passage-heading">
+                        <span className="passage-number">0{p + 1}</span>
+                        <div>
+                          <h2 lang="zh-Hant">{passage.title}</h2>
                         </div>
-                        <button
-                          className="expression-link"
-                          onClick={() => setModal(s)}
-                        >
-                          <h3 lang="zh-Hant">{s.text}</h3>
-                          <span>{s.pinyin}</span>
-                        </button>
-                        <p>{s.meaning}</p>
-                        <button
-                          className={saved ? "saved-card" : "save-card"}
-                          disabled={Boolean(saved) || dismissed}
-                          onClick={() => saveCard(s)}
-                        >
-                          {saved ? <Check size={15} /> : <Plus size={15} />}{" "}
-                          {saved
-                            ? saved.status === "archived"
-                              ? "Archived"
-                              : "Saved"
-                            : dismissed
-                              ? "Dismissed"
-                              : "Save flashcard"}
-                        </button>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            </>
-          )}
-          {page === "library" && (
-            <>
-              <span className="eyebrow">YOUR READING SHELF</span>
-              <div className="library-summary">
-                <BookOpen size={20} />
-                <span>{lessons.length} lessons</span>
-                <span className="meta-divider" />
-                <span>{state.read.length} read</span>
-              </div>
-              {Object.entries(
-                Object.groupBy(
-                  [...lessons].sort((a, b) => b.date.localeCompare(a.date)),
-                  (l) =>
-                    new Date(l.date + "T12:00:00").toLocaleDateString("en-US", {
-                      month: "long",
-                      year: "numeric",
-                    }),
-                ),
-              ).map(([month, items]) => (
-                <section key={month} className="library-month">
-                  <h2>{month}</h2>
-                  {items?.map((l) => (
-                    <button
-                      className="library-lesson"
-                      key={l.id}
-                      onClick={() => openLesson(l.id)}
-                    >
-                      <span className="library-day">{shortDate(l.date)}</span>
-                      <div>
-                        <h3 lang="zh-Hant">{l.title}</h3>
-                        <p>{l.subtitle}</p>
-                        <span>
-                          {l.passages.length} passages ·{" "}
-                          {
-                            state.cards.filter((c) => c.lessonId === l.id)
-                              .length
-                          }{" "}
-                          saved cards
-                        </span>
                       </div>
-                      <span className="read-status">
-                        {state.read.includes(l.id) ? (
-                          <>
-                            <Check size={15} />
-                            Read
-                          </>
-                        ) : (
-                          "Unread"
+                      <div className="chinese-text" lang="zh-Hant">
+                        {paragraphGroups(passage).map(
+                          (group, paragraphIndex) => (
+                            <p
+                              className="reading-paragraph"
+                              key={paragraphIndex}
+                            >
+                              {group.map(({ sentence: s, index: i }) => {
+                                const key = `${p}-${i}`;
+                                const visible =
+                                  showAll || revealed.includes(key);
+                                return (
+                                  <span
+                                    className="sentence-block"
+                                    key={key}
+                                    data-sentence={s.text}
+                                  >
+                                    <span
+                                      className="sentence"
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-label={`Pronunciation: ${s.text}`}
+                                      aria-expanded={visible}
+                                      onKeyDown={(e) => {
+                                        if (e.target !== e.currentTarget)
+                                          return;
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
+                                          e.preventDefault();
+                                          setRevealed((prev) =>
+                                            prev.includes(key)
+                                              ? prev.filter((k) => k !== key)
+                                              : [...prev, key],
+                                          );
+                                        }
+                                      }}
+                                      onClick={() => {
+                                        if (window.getSelection()?.toString())
+                                          return;
+                                        setSelection(null);
+                                        setRevealed((prev) =>
+                                          prev.includes(key)
+                                            ? prev.filter((k) => k !== key)
+                                            : [...prev, key],
+                                        );
+                                      }}
+                                    >
+                                      {textParts(s.text)}
+                                    </span>
+                                    {visible && (
+                                      <span
+                                        lang="zh-Latn"
+                                        className="pinyin-line"
+                                      >
+                                        {s.pinyin}
+                                      </span>
+                                    )}
+                                  </span>
+                                );
+                              })}
+                            </p>
+                          ),
                         )}
-                      </span>
-                      <ArrowUpRight size={20} />
-                    </button>
+                      </div>
+                    </section>
                   ))}
+                </div>
+                {(lesson.notes ?? []).length > 0 && (
+                  <section className="usage-notes">
+                    {lesson.notes.map((note, i) => (
+                      <details key={i}>
+                        <summary lang="zh-Hant">
+                          {note.title}
+                          <Plus size={16} />
+                        </summary>
+                        <div
+                          className="usage-note-text"
+                          data-sentence={note.text}
+                        >
+                          {note.text}
+                        </div>
+                      </details>
+                    ))}
+                  </section>
+                )}
+                <div className="reading-complete">
+                  <button
+                    className={
+                      state.read.includes(lesson.id) ? "secondary" : "primary"
+                    }
+                    onClick={() =>
+                      setState((prev) => ({
+                        ...prev,
+                        read: prev.read.includes(lesson.id)
+                          ? prev.read.filter((id) => id !== lesson.id)
+                          : [...prev.read, lesson.id],
+                      }))
+                    }
+                  >
+                    <CheckCheck size={18} />
+                    {state.read.includes(lesson.id)
+                      ? "Lesson read"
+                      : "Mark as read"}
+                  </button>
+                  <div className="difficulty">
+                    <span>How did this feel?</span>
+                    {["Too easy", "About right", "Too hard"].map((f) => (
+                      <button
+                        className={
+                          state.feedback[lesson.id] === f ? "selected" : ""
+                        }
+                        key={f}
+                        onClick={() =>
+                          setState((prev) => ({
+                            ...prev,
+                            feedback: { ...prev.feedback, [lesson.id]: f },
+                          }))
+                        }
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <section className="suggestions">
+                  <div className="section-title">
+                    <div>
+                      <h2>Suggested cards</h2>
+                    </div>
+                    <button
+                      className="secondary"
+                      disabled={!pending.length}
+                      onClick={() => {
+                        const additions: Card[] = pending
+                          .filter(
+                            (s, i, a) =>
+                              a.findIndex((x) => x.text === s.text) === i,
+                          )
+                          .map((s) => ({
+                            ...s,
+                            lessonId: lesson.id,
+                            status: "active",
+                            dueAt: Date.now(),
+                            reviews: 0,
+                            createdAt: Date.now(),
+                          }));
+                        setState((prev) => ({
+                          ...prev,
+                          cards: [...prev.cards, ...additions],
+                        }));
+                        setNotice(`${additions.length} cards saved`);
+                      }}
+                    >
+                      <Plus size={16} />
+                      Save remaining ({pending.length})
+                    </button>
+                  </div>
+                  <div className="suggestion-grid">
+                    {lesson.suggestions.map((s) => {
+                      const saved = findCard(state.cards, s.text);
+                      const dismissed = state.dismissed.includes(s.id);
+                      return (
+                        <article
+                          key={s.id}
+                          className={`suggestion-card ${dismissed ? "dismissed" : ""}`}
+                        >
+                          <div className="suggestion-top">
+                            <span className="kind">
+                              {s.kind === "grammar" ? "PATTERN" : "EXPRESSION"}
+                            </span>
+                            {!saved && (
+                              <button
+                                className="icon-button"
+                                aria-label={`${dismissed ? "Undo dismissal of" : "Dismiss"} ${s.text}`}
+                                onClick={() => dismiss(s)}
+                              >
+                                {dismissed ? (
+                                  <RotateCcw size={15} />
+                                ) : (
+                                  <X size={15} />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                          <button
+                            className="expression-link"
+                            onClick={() => setModal(s)}
+                          >
+                            <h3 lang="zh-Hant">{s.text}</h3>
+                            <span>{s.pinyin}</span>
+                          </button>
+                          <p>{s.meaning}</p>
+                          <button
+                            className={saved ? "saved-card" : "save-card"}
+                            disabled={Boolean(saved) || dismissed}
+                            onClick={() => saveCard(s)}
+                          >
+                            {saved ? <Check size={15} /> : <Plus size={15} />}{" "}
+                            {saved
+                              ? saved.status === "archived"
+                                ? "Archived"
+                                : "Saved"
+                              : dismissed
+                                ? "Dismissed"
+                                : "Save flashcard"}
+                          </button>
+                        </article>
+                      );
+                    })}
+                  </div>
                 </section>
-              ))}
-            </>
-          )}
+              </>
+            ))}
+          {page === "library" &&
+            (lessons.length === 0 ? (
+              emptyLessons
+            ) : (
+              <>
+                <span className="eyebrow">YOUR READING SHELF</span>
+                <div className="library-summary">
+                  <BookOpen size={20} />
+                  <span>
+                    {lessons.length}{" "}
+                    {lessons.length === 1 ? "lesson" : "lessons"}
+                  </span>
+                  <span className="meta-divider" />
+                  <span>{state.read.length} read</span>
+                </div>
+                {Object.entries(
+                  Object.groupBy(
+                    [...lessons].sort((a, b) => b.date.localeCompare(a.date)),
+                    (l) =>
+                      new Date(l.date + "T12:00:00").toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "long",
+                          year: "numeric",
+                        },
+                      ),
+                  ),
+                ).map(([month, items]) => (
+                  <section key={month} className="library-month">
+                    <h2>{month}</h2>
+                    {items?.map((l) => (
+                      <button
+                        className="library-lesson"
+                        key={l.id}
+                        onClick={() => openLesson(l.id)}
+                      >
+                        <span className="library-day">{shortDate(l.date)}</span>
+                        <div>
+                          <h3 lang="zh-Hant">{l.title}</h3>
+                          <p>{l.subtitle}</p>
+                          <span>
+                            {l.passages.length} passages ·{" "}
+                            {
+                              state.cards.filter((c) => c.lessonId === l.id)
+                                .length
+                            }{" "}
+                            saved cards
+                          </span>
+                        </div>
+                        <span className="read-status">
+                          {state.read.includes(l.id) ? (
+                            <>
+                              <Check size={15} />
+                              Read
+                            </>
+                          ) : (
+                            "Unread"
+                          )}
+                        </span>
+                        <ArrowUpRight size={20} />
+                      </button>
+                    ))}
+                  </section>
+                ))}
+              </>
+            ))}
           {page === "review" && (
             <>
               {session ? (
@@ -921,7 +942,9 @@ export default function StudyApp({
                   {!browse.length ? (
                     <div className="empty-state">
                       <Layers size={34} />
-                      {state.cards.length > 0 && <h2>Nothing here right now.</h2>}
+                      {state.cards.length > 0 && (
+                        <h2>Nothing here right now.</h2>
+                      )}
                       <p>
                         {state.cards.length
                           ? "Try another view, or return when cards are due."
@@ -1015,7 +1038,7 @@ export default function StudyApp({
         {(
           [
             { id: "today", label: "Today", icon: BookOpen },
-            { id: "library", label: "Library", icon: Library },
+            { id: "library", label: "Archive", icon: Library },
             { id: "review", label: "Review", icon: Layers },
           ] as const
         ).map((item) => (
@@ -1109,67 +1132,6 @@ export default function StudyApp({
             );
           }}
         />
-      )}
-      {settings && (
-        <Dialog title="Settings" onClose={() => setSettings(false)}>
-          <div className="settings-section">
-            <span className="eyebrow">READING ROUTINE</span>
-            <h3>Import from ChatGPT</h3>
-            <p>
-              Traditional characters, Taiwan Mandarin. Two connected passages
-              with occasional variations in format.
-            </p>
-            <p className="muted">
-              Paste your ChatGPT lesson using Import lesson. No API key or
-              separate AI billing is needed. For custom cards, edit the
-              suggested pinyin and enter the meaning yourself.
-            </p>
-          </div>
-          <div className="settings-section">
-            <h3>Device access</h3>
-            {localDemo ? (
-              <p>This local prototype saves on this device.</p>
-            ) : (
-              <>
-                <p>
-                  Your passcode keeps this app private. This device stays unlocked
-                  for 30 days. Lock it now to require the passcode again.
-                </p>
-                <button className="secondary" onClick={lockApp}>
-                  <LogOut size={16} />
-                  Lock this device
-                </button>
-              </>
-            )}
-          </div>
-          <div className="settings-section">
-            <h3>On your iPhone</h3>
-            <p>
-              Open the deployed website in Safari, then Share → Add to Home
-              Screen. Your passcode gives this device access to the same private
-              library.
-            </p>
-          </div>
-          <div className="settings-section">
-            <h3>Keep a backup</h3>
-            <button
-              className="secondary"
-              onClick={() => {
-                const blob = new Blob([JSON.stringify(state, null, 2)], {
-                  type: "application/json",
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "everyday-chinese-progress.json";
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-            >
-              Export progress
-            </button>
-          </div>
-        </Dialog>
       )}
       {notice && (
         <div className="toast" role="status">

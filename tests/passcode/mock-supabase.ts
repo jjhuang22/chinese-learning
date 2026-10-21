@@ -43,6 +43,9 @@ createServer(async (request, response) => {
     }
     if (url.pathname === "/__reset" && request.method === "POST") {
       await reset();
+      if (url.searchParams.get("empty") === "1") {
+        await db.query("delete from public.lessons where user_id=$1", [owner]);
+      }
       send(200, { reset: true });
       return;
     }

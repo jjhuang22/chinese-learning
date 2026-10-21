@@ -72,7 +72,10 @@ test("saving a highlight updates the suggestions once, persists, and supports ar
     page.getByRole("heading", { name: "A little more familiar." }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Back to your cards" }).click();
-  await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await page
+    .locator(".deck-toolbar")
+    .getByRole("button", { name: "Archive", exact: true })
+    .click();
   await expect(page.locator(".deck-word")).toContainText("觀望");
   await page.getByRole("button", { name: "Restore", exact: true }).click();
   await page.getByRole("button", { name: "Due", exact: true }).click();
@@ -125,7 +128,7 @@ test("review repeats kept cards once and ends; library and difficulty changes pe
   await card
     .getByRole("button", { name: "Save flashcard", exact: true })
     .click();
-  await nav(page, "Library");
+  await nav(page, "Archive");
   await expect(page.locator(".library-lesson")).toHaveCount(2);
   await expect(page.locator(".library-lesson").first()).toContainText("Read");
   await page.locator(".library-lesson").first().click();
@@ -238,7 +241,7 @@ test("paste, preview, save, reload, library, pinyin, and card review pipeline", 
     .getByRole("dialog")
     .getByRole("button", { name: "Save flashcard", exact: true })
     .click();
-  await nav(page, "Library");
+  await nav(page, "Archive");
   await expect(page.locator(".library-lesson")).toHaveCount(3);
   await page.locator(".library-lesson").first().click();
   await page
@@ -286,6 +289,6 @@ test("invalid and duplicate imports are rejected without changing the lesson lib
     "already exists",
   );
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
-  await nav(page, "Library");
+  await nav(page, "Archive");
   await expect(page.locator(".library-lesson")).toHaveCount(2);
 });

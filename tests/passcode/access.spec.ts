@@ -125,18 +125,16 @@ test("reader creates cards, saves through the protected server API, and restores
   const token = await unlock(request);
   // The production cookie is Secure (asserted above); localhost HTTP needs a
   // test-only equivalent so Chromium can exercise the protected reader.
-  await page
-    .context()
-    .addCookies([
-      {
-        name: "everyday_session",
-        value: token,
-        url: origin,
-        httpOnly: true,
-        secure: false,
-        sameSite: "Strict",
-      },
-    ]);
+  await page.context().addCookies([
+    {
+      name: "everyday_session",
+      value: token,
+      url: origin,
+      httpOnly: true,
+      secure: false,
+      sameSite: "Strict",
+    },
+  ]);
   await page.goto("/");
   await expect(page.locator(".lesson-heading h1")).toContainText(
     "PRIVATE_LESSON_SENTINEL",
@@ -164,11 +162,96 @@ test("reader creates cards, saves through the protected server API, and restores
     .getByRole("button", { name: "Reveal meaning", exact: true })
     .click();
   await expect(page.locator(".card-answer")).toBeVisible();
-  await page.locator(".settings-button").click();
-  await page
-    .getByRole("button", { name: "Lock this device", exact: true })
-    .click();
+  expect(
+    (
+      await page.request.post("/api/lock", {
+        headers: { Origin: origin },
+      })
+    ).status(),
+  ).toBe(200);
+  await page.reload();
   await expect(
     page.getByRole("heading", { name: "Unlock your lessons" }),
   ).toBeVisible();
 });
+
+for (const viewport of [
+  { width: 1280, height: 800 },
+  { width: 390, height: 844 },
+]) {
+  test(`empty lessons offer import without phantom progress at ${viewport.width}px`, async ({
+    request,
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    expect(
+      (await request.post("http://127.0.0.1:4010/__reset?empty=1")).ok(),
+    ).toBe(true);
+    const token = await unlock(request);
+    await page.context().addCookies([
+      {
+        name: "everyday_session",
+        value: token,
+        url: origin,
+        httpOnly: true,
+        secure: false,
+        sameSite: "Strict",
+      },
+    ]);
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { name: "No lessons yet" }),
+    ).toBeVisible();
+    await expect(
+      page.locator(".reader-toolbar, .reading-complete, .suggestions"),
+    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /settings/i })).toHaveCount(
+      0,
+    );
+    await expect(page.getByText("Private cloud sync")).toHaveCount(0);
+    await expect(page.locator(".brand-mark")).toHaveText("日");
+    const nav = page.locator(
+      viewport.width < 760 ? ".mobile-nav" : ".sidebar nav",
+    );
+    await nav.getByRole("button", { name: "Archive", exact: true }).click();
+    await expect(page.locator(".breadcrumb")).toHaveText("Archive");
+    await expect(
+      page.getByRole("heading", { name: "No lessons yet" }),
+    ).toBeVisible();
+    await nav.getByRole("button", { name: "Today", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Import your first lesson" })
+      .click();
+    await page
+      .getByLabel("Lesson JSON")
+      .fill(await readFile("public/example-lesson.json", "utf8"));
+    await page
+      .getByRole("button", { name: "Preview lesson", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Save to archive", exact: true })
+      .click();
+    await expect(page.locator(".breadcrumb")).toHaveText("Today");
+    await expect(page.locator(".lesson-heading h1")).toContainText("買得划算");
+    await expect(
+      page.getByRole("button", { name: "Show all pinyin" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Mark as read", exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(page.locator(".lesson-heading h1")).toContainText("買得划算");
+    await nav.getByRole("button", { name: "Archive", exact: true }).click();
+    await expect(page.locator(".library-summary")).toContainText("1 lesson");
+    await expect(page.locator(".library-summary")).toContainText("0 read");
+    const progress = await request.get("/api/progress", {
+      headers: { Cookie: `everyday_session=${token}` },
+    });
+    expect((await progress.json()).state).toEqual({
+      cards: [],
+      dismissed: [],
+      read: [],
+      feedback: {},
+    });
+  });
+}

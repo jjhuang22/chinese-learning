@@ -36,7 +36,7 @@ Deploy the latest `main` commit from `jjhuang22/chinese-learning`. The repositor
 
 Visit https://chinese-learning-ruddy.vercel.app, enter APP_PASSCODE, and click **Unlock**. No email is sent. The cookie lasts 30 days and uses HttpOnly, Secure on Vercel/HTTPS, and SameSite=Strict. Changing APP_PASSCODE, the service key, or LEARNER_USER_ID invalidates all existing app sessions after redeploying.
 
-Use Settings → Lock this device to clear the current cookie. This locks only that device; rotate the passcode to invalidate every device. Sessions do not depend on Supabase Auth email quotas. A locked request cannot fetch the library, import lessons, or load/save progress.
+The Settings panel has been removed. Rotate the passcode in Vercel and redeploy to invalidate existing sessions on every device. Sessions do not depend on Supabase Auth email quotas. A locked request cannot fetch the library, import lessons, or load/save progress.
 
 If the unlock page reports incomplete setup, check all four variables and redeploy. If it says to run the schema, re-run the current SQL file. Repeated incorrect attempts will be limited for up to 15 minutes.
 
@@ -44,7 +44,7 @@ If the unlock page reports incomplete setup, check all four variables and redepl
 
 1. Unlock the app.
 2. Click **Import lesson**.
-3. Paste the JSON from ChatGPT, preview it, then **Save to my library**.
+3. Paste the JSON from ChatGPT, preview it, then **Save to archive**.
 4. Reload to verify persistence. Save a suggested card, open Review, and try another device with the same passcode.
 
 For a complete neutral test, copy `public/example-lesson.json`. It uses 2026-10-22; duplicate dates are rejected without replacing existing lessons. Change to a valid unused date if needed.

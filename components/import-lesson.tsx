@@ -108,7 +108,7 @@ export default function ImportLesson({
               ? "Saving…"
               : localDemo
                 ? "Save on this device"
-                : "Save to my library"}
+                : "Save to archive"}
           </button>
         </>
       ) : (
