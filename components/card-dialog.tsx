@@ -10,6 +10,8 @@ export default function CardDialog({
   onSave,
   onUpdate,
   onSource,
+  canEdit,
+  onRequestEditing,
 }: {
   suggestion: Suggestion;
   existing?: Card;
@@ -17,6 +19,8 @@ export default function CardDialog({
   onSave: (s: Suggestion) => void;
   onUpdate: (s: Suggestion) => void;
   onSource: () => void;
+  canEdit: boolean;
+  onRequestEditing: () => void;
 }) {
   const [draft, setDraft] = useState(suggestion);
   const [editing, setEditing] = useState(!suggestion.meaning);
@@ -105,7 +109,16 @@ export default function CardDialog({
             {draft.sentence}
           </blockquote>
           <div className="dialog-actions">
-            <button className="text-button" onClick={() => setEditing(true)}>
+            <button
+              className="text-button"
+              onClick={() => {
+                if (!canEdit) {
+                  onRequestEditing();
+                  return;
+                }
+                setEditing(true);
+              }}
+            >
               Edit card
             </button>
             <button

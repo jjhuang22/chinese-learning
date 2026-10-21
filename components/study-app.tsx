@@ -1,11 +1,19 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { BookOpen, Library, Layers, Check, Plus, X } from "lucide-react";
 import Reader from "./reader";
 import Review from "./review";
 import LessonLibrary from "./lesson-library";
 import CardDialog from "./card-dialog";
 import ImportLesson from "./import-lesson";
+import EditingAccess from "./editing-access";
 import { pinyin } from "pinyin-pro";
 import {
   Card,
@@ -25,19 +33,65 @@ export default function StudyApp({
   localDemo,
   initialState = emptyState,
   initialRevision = 0,
+  initialCanEdit = false,
 }: {
   initialLessons: Lesson[];
   localDemo: boolean;
   initialState?: StudyState;
   initialRevision?: number | null;
+  initialCanEdit?: boolean;
 }) {
   const [page, setPage] = useState<Page>("today");
   const [lessons, setLessons] = useState<Lesson[]>(initialLessons);
   const [lessonId, setLessonId] = useState(
     initialLessons.at(-1)?.id ?? "empty",
   );
-  const { state, setState, syncError, conflict, retrySync, storageError } =
-    useProgress(initialState, initialRevision, localDemo);
+  const [canEdit, setCanEdit] = useState(localDemo || initialCanEdit);
+  const [editingAccess, setEditingAccess] = useState(false);
+  const onAccessExpired = useCallback(() => setCanEdit(false), []);
+  const {
+    state,
+    setState: setProgress,
+    syncError,
+    conflict,
+    retrySync,
+    storageError,
+    hasPendingChanges,
+  } = useProgress(
+    initialState,
+    initialRevision,
+    localDemo,
+    canEdit,
+    onAccessExpired,
+  );
+  const viewState = canEdit ? state : emptyState;
+  function requestEditing() {
+    setEditingAccess(true);
+  }
+  const setState: Dispatch<SetStateAction<StudyState>> = (action) => {
+    if (!canEdit) {
+      requestEditing();
+      return;
+    }
+    setProgress(action);
+  };
+  function importLesson() {
+    if (!canEdit) {
+      requestEditing();
+      return;
+    }
+    setImporting(true);
+  }
+  async function lockEditing() {
+    if (hasPendingChanges() && !(await retrySync())) return;
+    try {
+      const response = await fetch("/api/lock", { method: "POST" });
+      if (!response.ok) throw new Error();
+      window.location.reload();
+    } catch {
+      setNotice("Could not lock editing. Check your connection and try again.");
+    }
+  }
   const [lessonStorageError, setLessonStorageError] = useState("");
   useEffect(() => {
     if (!localDemo) return;
@@ -63,6 +117,13 @@ export default function StudyApp({
   const [selection, setSelection] = useState<Pick | null>(null);
   const [importing, setImporting] = useState(false);
   const [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (!canEdit) {
+      setModal(null);
+      setSelection(null);
+      setImporting(false);
+    }
+  }, [canEdit]);
   const reader = useRef<HTMLDivElement>(null);
   const lesson = lessons.find((l) => l.id === lessonId) ??
     lessons[lessons.length - 1] ?? {
@@ -74,23 +135,20 @@ export default function StudyApp({
       suggestions: [],
       notes: [],
     };
-  const active = state.cards.filter((c) => c.status === "active");
+  const active = viewState.cards.filter((c) => c.status === "active");
   const due = active.filter((c) => c.dueAt <= Date.now());
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(t);
   }, []);
-  function returnToLock() {
-    window.location.replace("/sign-in");
-  }
   useEffect(() => {
     if (localDemo) return;
     let live = true;
     const check = async () => {
       try {
         const response = await fetch("/api/session", { cache: "no-store" });
-        if (live && response.status === 401) returnToLock();
+        if (live && response.status === 401) setCanEdit(false);
       } catch {
         /* Keep unsaved work while offline. */
       }
@@ -122,6 +180,10 @@ export default function StudyApp({
     navigate("today");
   }
   function saveCard(s: Suggestion) {
+    if (!canEdit) {
+      requestEditing();
+      return;
+    }
     const found = findCard(state.cards, s.text);
     if (found) {
       setNotice(
@@ -172,6 +234,10 @@ export default function StudyApp({
     return () => document.removeEventListener("selectionchange", selected);
   });
   async function createSelected() {
+    if (!canEdit) {
+      requestEditing();
+      return;
+    }
     if (!selection) return;
     const selected = selection;
     setSelection(null);
@@ -209,7 +275,7 @@ export default function StudyApp({
       <BookOpen size={34} />
       <h1>No lessons yet</h1>
       <p>Import a lesson to start reading.</p>
-      <button className="primary" onClick={() => setImporting(true)}>
+      <button className="primary" onClick={importLesson}>
         <Plus size={16} /> Import your first lesson
       </button>
     </section>
@@ -258,9 +324,17 @@ export default function StudyApp({
                 : "Review"}
           </span>
           <div className="topbar-right">
+            {!localDemo && (
+              <button
+                className="text-button editing-trigger"
+                onClick={canEdit ? lockEditing : requestEditing}
+              >
+                {canEdit ? "Lock editing" : "Enable editing"}
+              </button>
+            )}
             <button
               className="text-button import-trigger"
-              onClick={() => setImporting(true)}
+              onClick={importLesson}
             >
               <Plus size={16} />
               Import lesson
@@ -270,10 +344,12 @@ export default function StudyApp({
         {(storageError || lessonStorageError) && (
           <div className="warning">{storageError || lessonStorageError}</div>
         )}
-        {syncError && (
+        {(canEdit || hasPendingChanges()) && syncError && (
           <div className="warning">
             {syncError}{" "}
-            {conflict || initialRevision === null ? (
+            {!canEdit ? (
+              <button onClick={requestEditing}>Enable editing</button>
+            ) : conflict || initialRevision === null ? (
               <button onClick={exportProgress}>Export unsaved progress</button>
             ) : (
               <button onClick={retrySync}>Retry sync</button>
@@ -288,13 +364,15 @@ export default function StudyApp({
               <Reader
                 key={lesson.id}
                 lesson={lesson}
-                state={state}
+                state={viewState}
                 setState={setState}
                 setModal={setModal}
                 setNotice={setNotice}
                 saveCard={saveCard}
                 captureSelection={captureSelection}
                 clearSelection={() => setSelection(null)}
+                canEdit={canEdit}
+                onRequestEditing={requestEditing}
               />
             ))}
           {page === "library" &&
@@ -303,19 +381,30 @@ export default function StudyApp({
             ) : (
               <LessonLibrary
                 lessons={lessons}
-                state={state}
+                state={viewState}
                 openLesson={openLesson}
+                canEdit={canEdit}
               />
             ))}
-          {page === "review" && (
-            <Review
-              state={state}
-              setState={setState}
-              setModal={setModal}
-              navigate={navigate}
-              now={now}
-            />
-          )}
+          {page === "review" &&
+            (canEdit ? (
+              <Review
+                state={viewState}
+                setState={setState}
+                setModal={setModal}
+                navigate={navigate}
+                now={now}
+              />
+            ) : (
+              <section className="empty-state">
+                <Layers size={34} />
+                <h1>Your review deck is private</h1>
+                <p>Enable editing to view saved cards and review progress.</p>
+                <button className="primary" onClick={requestEditing}>
+                  Enable editing
+                </button>
+              </section>
+            ))}
         </div>
       </main>
       <nav className="mobile-nav">
@@ -370,21 +459,31 @@ export default function StudyApp({
       {modal && (
         <CardDialog
           key={modal.id}
-          suggestion={findCard(state.cards, modal.text) ?? modal}
-          existing={findCard(state.cards, modal.text)}
+          suggestion={findCard(viewState.cards, modal.text) ?? modal}
+          existing={findCard(viewState.cards, modal.text)}
           onClose={closeModal}
+          canEdit={canEdit}
+          onRequestEditing={requestEditing}
           onSave={(s) => {
+            if (!canEdit) {
+              requestEditing();
+              return;
+            }
             saveCard(s);
             setModal(null);
           }}
           onSource={() => {
-            const c = findCard(state.cards, modal.text);
+            const c = findCard(viewState.cards, modal.text);
             if (c) {
               openLesson(c.lessonId);
               setModal(null);
             }
           }}
           onUpdate={(s) => {
+            if (!canEdit) {
+              requestEditing();
+              return;
+            }
             setState((prev) => ({
               ...prev,
               cards: prev.cards.map((c) =>
@@ -396,7 +495,7 @@ export default function StudyApp({
           }}
         />
       )}
-      {importing && (
+      {importing && canEdit && (
         <ImportLesson
           localDemo={localDemo}
           existingDates={lessons.map((l) => l.date)}
@@ -413,6 +512,17 @@ export default function StudyApp({
                 ? "Lesson saved on this device"
                 : "Lesson saved privately to Supabase",
             );
+          }}
+        />
+      )}
+      {editingAccess && (
+        <EditingAccess
+          onClose={() => setEditingAccess(false)}
+          onUnlocked={() => {
+            if (hasPendingChanges()) {
+              setCanEdit(true);
+              setEditingAccess(false);
+            } else window.location.reload();
           }}
         />
       )}

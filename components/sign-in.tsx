@@ -44,10 +44,10 @@ export default function SignIn() {
   return (
     <main className="sign-in-page">
       <section className="sign-in-card">
-        <span className="brand-mark">日</span>
-        <h1>Unlock your lessons</h1>
+        <span className="brand-mark">中</span>
+        <h1>Enable editing</h1>
         <form onSubmit={unlock}>
-          <label htmlFor="passcode">Passcode</label>
+          <label htmlFor="passcode">Password</label>
           <input
             id="passcode"
             type="password"
@@ -60,7 +60,7 @@ export default function SignIn() {
           />
           <button className="primary full" disabled={busy || !passcode}>
             <LockKeyhole size={17} />
-            {busy ? "Unlocking…" : "Unlock"}
+            {busy ? "Checking…" : "Enable editing"}
           </button>
         </form>
         {message && <p role="status">{message}</p>}

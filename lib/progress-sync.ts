@@ -20,6 +20,10 @@ export class ProgressSync {
     this.revision = revision;
   }
 
+  hasPendingChanges() {
+    return this.current !== this.saved;
+  }
+
   update(state: StudyState) {
     this.current = state;
   }

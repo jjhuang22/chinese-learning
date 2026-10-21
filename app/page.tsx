@@ -1,12 +1,11 @@
 import { readFile } from "node:fs/promises";
-import { redirect } from "next/navigation";
 import StudyApp from "@/components/study-app";
 import { adminClient } from "@/lib/server";
 import { isUnlocked } from "@/lib/passcode";
 import { loadProgress } from "@/lib/load-progress";
 import { loadLessons } from "@/lib/library";
 import { localDemoAllowed } from "@/lib/demo";
-import { lessonSchema, type Lesson } from "@/lib/model";
+import { emptyState, lessonSchema, type Lesson } from "@/lib/model";
 import samples from "@/lib/sample-lessons.json";
 export const dynamic = "force-dynamic";
 export default async function Page() {
@@ -30,11 +29,13 @@ export default async function Page() {
     }
     return <StudyApp initialLessons={initialLessons} localDemo />;
   }
-  if (!(await isUnlocked())) redirect("/sign-in");
+  const canEdit = await isUnlocked();
   const { db, learnerId } = adminClient();
   const [history, progress] = await Promise.all([
     loadLessons(db, learnerId),
-    loadProgress(db, learnerId),
+    canEdit
+      ? loadProgress(db, learnerId)
+      : Promise.resolve({ state: emptyState, revision: 0 }),
   ]);
   const initialLessons = history;
   return (
@@ -43,6 +44,7 @@ export default async function Page() {
       initialState={progress.state}
       initialRevision={progress.revision}
       localDemo={false}
+      initialCanEdit={canEdit}
     />
   );
 }

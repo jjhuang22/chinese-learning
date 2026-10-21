@@ -28,6 +28,8 @@ export default function Reader({
   saveCard,
   captureSelection,
   clearSelection,
+  canEdit,
+  onRequestEditing,
 }: {
   lesson: Lesson;
   state: StudyState;
@@ -37,6 +39,8 @@ export default function Reader({
   saveCard: (suggestion: Suggestion) => void;
   captureSelection: () => void;
   clearSelection: () => void;
+  canEdit: boolean;
+  onRequestEditing: () => void;
 }) {
   const [showAll, setShowAll] = useState(true);
   const [revealed, setRevealed] = useState<string[]>([]);
@@ -223,6 +227,10 @@ export default function Reader({
             className="secondary"
             disabled={!pending.length}
             onClick={() => {
+              if (!canEdit) {
+                onRequestEditing();
+                return;
+              }
               const additions: Card[] = pending
                 .filter(
                   (s, i, a) =>

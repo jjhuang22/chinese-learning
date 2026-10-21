@@ -11,10 +11,12 @@ export default function LessonLibrary({
   lessons,
   state,
   openLesson,
+  canEdit,
 }: {
   lessons: Lesson[];
   state: StudyState;
   openLesson: (id: string) => void;
+  canEdit: boolean;
 }) {
   return (
     <>
@@ -23,8 +25,12 @@ export default function LessonLibrary({
         <span>
           {lessons.length} {lessons.length === 1 ? "lesson" : "lessons"}
         </span>
-        <span className="meta-divider" />
-        <span>{state.read.length} read</span>
+        {canEdit && (
+          <>
+            <span className="meta-divider" />
+            <span>{state.read.length} read</span>
+          </>
+        )}
       </div>
       {Object.entries(
         Object.groupBy(
@@ -49,21 +55,30 @@ export default function LessonLibrary({
                 <h3 lang="zh-Hant">{l.title}</h3>
                 <p>{l.subtitle}</p>
                 <span>
-                  {l.passages.length} passages ·{" "}
-                  {state.cards.filter((c) => c.lessonId === l.id).length} saved
-                  cards
+                  {l.passages.length} passages
+                  {canEdit && (
+                    <>
+                      {" "}
+                      · {
+                        state.cards.filter((c) => c.lessonId === l.id).length
+                      }{" "}
+                      saved cards
+                    </>
+                  )}
                 </span>
               </div>
-              <span className="read-status">
-                {state.read.includes(l.id) ? (
-                  <>
-                    <Check size={15} />
-                    Read
-                  </>
-                ) : (
-                  "Unread"
-                )}
-              </span>
+              {canEdit && (
+                <span className="read-status">
+                  {state.read.includes(l.id) ? (
+                    <>
+                      <Check size={15} />
+                      Read
+                    </>
+                  ) : (
+                    "Unread"
+                  )}
+                </span>
+              )}
               <ArrowUpRight size={20} />
             </button>
           ))}

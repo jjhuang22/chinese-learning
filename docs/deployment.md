@@ -1,4 +1,4 @@
-# Deploy the private app
+# Deploy the app
 
 The app serves one existing Supabase learner account through Next.js on Vercel. Keep that user's UUID: lessons and progress reference it through `auth.users`.
 
@@ -13,7 +13,7 @@ Set these in Vercel's Production environment, or in an untracked `.env.local` fo
 | `NEXT_PUBLIC_SUPABASE_URL`  | Supabase project base URL, without `/rest/v1` or `/auth/v1`    |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server service-role key or Supabase secret key; mark Sensitive |
 | `LEARNER_USER_ID`           | Existing user's UID from Supabase Authentication → Users       |
-| `APP_PASSCODE`              | Private passcode, 8–128 characters; mark Sensitive             |
+| `APP_PASSCODE`              | Editing password, 8–128 characters; mark Sensitive             |
 
 `SUPABASE_URL` can replace `NEXT_PUBLIC_SUPABASE_URL`; use one authoritative value. Never prefix the server key or passcode with `NEXT_PUBLIC_`, or put secrets in Git, URLs, or chat. The app does not need an anon key, SMTP, AI key, or cron configuration.
 
@@ -27,8 +27,8 @@ Use the repository root as Vercel's Root Directory; [vercel.json](../vercel.json
 
 ## Verify
 
-1. In a private window, confirm `/` redirects to the unlock page and `/api/progress` returns 401.
-2. Unlock with your passcode. Confirm the expected library loads.
+1. In a private window, confirm `/` opens the lessons directly, while `/api/progress` returns 401. Saved cards and personal progress must not appear in page data or Archive counts.
+2. Choose **Enable editing** and enter the existing password. Confirm saved cards and personal progress are available, then use **Lock editing** to return to public reading.
 3. Import [example-lesson.json](../public/example-lesson.json), using a valid unused date. Reload and verify the lesson persists.
 4. Save a card, mark a lesson read, and verify both after reload. Try a second device.
 5. Open two tabs, save in one, then edit the other. The stale tab should report a conflict without replacing the first tab's work.
@@ -38,9 +38,9 @@ Automated tests use synthetic accounts. These checks verify your actual project 
 
 ## Sessions and saves
 
-Sessions last 30 days. The cookie is HttpOnly, SameSite=Strict, and Secure on Vercel/HTTPS. Its HMAC signing key derives from the service key, passcode, and learner UUID. Changing any of those values invalidates app sessions after redeployment. The Settings panel has been removed; rotate the passcode to invalidate all devices. The server still exposes `/api/lock` to clear the current device cookie.
+Editor sessions last 30 days. The cookie is HttpOnly, SameSite=Strict, and Secure on Vercel/HTTPS. Its HMAC signing key derives from the service key, passcode, and learner UUID. Changing any of those values invalidates app sessions after redeployment. Use **Lock editing** to clear the current device cookie. Rotating the editing password invalidates editor access on all devices. It does not block public lesson reading.
 
-All learning-data queries run on the server and scope to `LEARNER_USER_ID`. Supabase browser roles cannot access lessons or progress after the current schema is applied. The unlock limiter permits five attempts per client and 100 globally per 15-minute window, stores keyed client hashes, and fails closed if unavailable.
+Lessons and their suggested cards are publicly readable. Saved flashcards, reading/review progress, and all mutation endpoints require the editing password. Public page responses do not load or serialize personal progress. All learning-data queries run on the server and scope to `LEARNER_USER_ID`. Supabase browser roles cannot access lessons or progress after the current schema is applied. The unlock limiter permits five attempts per client and 100 globally per 15-minute window, stores keyed client hashes, and fails closed if unavailable.
 
 Progress stays in memory until saved; it is not mirrored into browser storage in protected mode. Keep the tab open after a save failure and retry. For a conflict, use **Export unsaved progress** in the conflict warning before reloading. The conflict export contains progress and cards only, with no restore UI. Keep a separate Supabase backup for the full library. Previously authorized devices may retain content they have already loaded.
 

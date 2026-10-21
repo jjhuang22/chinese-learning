@@ -156,9 +156,11 @@ export default function Review({
         <>
           <div className="review-summary">
             <div>
-              <span className="eyebrow">READY WHEN YOU ARE</span>
               <h2>
-                {due.length} <span>cards to revisit</span>
+                {due.length}{" "}
+                <span>
+                  {due.length === 1 ? "card to review" : "cards to review"}
+                </span>
               </h2>
             </div>
             <button
@@ -215,7 +217,7 @@ export default function Review({
               <Search size={16} />
               <input
                 aria-label="Find a card"
-                placeholder="Find a word or pattern…"
+                placeholder="Find a word or phrase…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />

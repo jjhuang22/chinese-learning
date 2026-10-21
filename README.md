@@ -2,7 +2,7 @@
 
 A single-learner Traditional Chinese reading and flashcard app. Generate lessons in your existing ChatGPT conversation or automation, import the JSON, then read with sentence-level pinyin and review expressions you choose to save.
 
-Built with Next.js 16, React 19, TypeScript, and Supabase. The deployed app uses a private passcode; local demo mode works without credentials.
+Built with Next.js 16, React 19, TypeScript, and Supabase. Lessons and suggested cards are publicly readable. The existing password protects saved cards, personal progress, and all imports/edits; local demo mode works without credentials.
 
 ## How it fits together
 
@@ -11,24 +11,24 @@ ChatGPT → lesson JSON → preview and validation → lesson library
                                                 ↓
                                       reader → approved cards → review
 
-Browser ── signed session ── Next.js server/API ── service key ── Supabase
+Browser ── public lessons / signed editor session ── Next.js server/API ── service key ── Supabase
 Local demo ─────────────────────────────────────────────────── browser storage
 ```
 
 The server scopes every database request to one configured learner UUID. The browser never receives the service key. Supabase browser roles have no access to learning data, including through old email-login sessions.
 
-| Path                                                        | Responsibility                                                                      |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `app/page.tsx`                                              | Authenticate and load the library and progress, or start the local demo             |
-| `app/api/`                                                  | Unlock/lock, session checks, imports, and progress saves                            |
-| `components/study-app.tsx`                                  | App navigation, lesson selection, and shared dialogs                                |
-| `components/reader.tsx`, `lesson-library.tsx`, `review.tsx` | Reading, library browsing, and card review                                          |
-| `hooks/use-progress.ts`, `lib/progress-sync.ts`             | Browser storage in demo mode; serialized cloud saves with revision checks           |
-| `lib/model.ts`, `import-lesson.ts`, `progress-schema.ts`    | Data contracts, import validation, and card identity                                |
-| `lib/passcode.ts`, `server.ts`, `library.ts`                | Sessions, protected database access, bounded requests, and paginated lesson loading |
-| `supabase/schema.sql`                                       | Tables, server-only permissions, revision-checked saves, and unlock throttling      |
-| `public/`                                                   | Automation instructions, neutral example JSON, and app icons                        |
-| `tests/`                                                    | Desktop/mobile browser, database, privacy, and protected-route tests                |
+| Path                                                        | Responsibility                                                                          |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `app/page.tsx`                                              | Load public lessons and, for editors only, private progress; or start the local demo    |
+| `app/api/`                                                  | Unlock/lock, session checks, imports, and progress saves                                |
+| `components/study-app.tsx`                                  | App navigation, lesson selection, and shared dialogs                                    |
+| `components/reader.tsx`, `lesson-library.tsx`, `review.tsx` | Reading, library browsing, and card review                                              |
+| `hooks/use-progress.ts`, `lib/progress-sync.ts`             | Browser storage in demo mode; serialized cloud saves with revision checks               |
+| `lib/model.ts`, `import-lesson.ts`, `progress-schema.ts`    | Data contracts, import validation, and card identity                                    |
+| `lib/passcode.ts`, `server.ts`, `library.ts`                | Editor sessions, server database access, bounded requests, and paginated lesson loading |
+| `supabase/schema.sql`                                       | Tables, server-only permissions, revision-checked saves, and unlock throttling          |
+| `public/`                                                   | Automation instructions, neutral example JSON, and app icons                            |
+| `tests/`                                                    | Desktop/mobile browser, database, privacy, and protected-route tests                    |
 
 ## Run locally
 
@@ -41,12 +41,12 @@ npm run dev
 
 Open [localhost:3000](http://localhost:3000). Development uses neutral lessons, or ignored `.private/original-lessons.json` when present. Demo imports and progress stay in that browser. Set `USE_PUBLIC_FIXTURES=1` to force neutral content.
 
-| Mode                | Command                                                                        | Storage and access                                     |
-| ------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| Development demo    | `npm run dev`                                                                  | Browser storage; no passcode, even with `LOCAL_DEMO=0` |
-| Production demo     | `npm run build`, then `LOCAL_DEMO=1 npm run start`                             | Browser storage; no passcode                           |
-| Protected local app | Configure `.env.local`, run `npm run build`, then `LOCAL_DEMO=0 npm run start` | Supabase and passcode required                         |
-| Vercel              | See [deployment](docs/deployment.md)                                           | Always protected, regardless of `LOCAL_DEMO`           |
+| Mode                | Command                                                                        | Storage and access                                               |
+| ------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Development demo    | `npm run dev`                                                                  | Browser storage; no passcode, even with `LOCAL_DEMO=0`           |
+| Production demo     | `npm run build`, then `LOCAL_DEMO=1 npm run start`                             | Browser storage; no passcode                                     |
+| Protected local app | Configure `.env.local`, run `npm run build`, then `LOCAL_DEMO=0 npm run start` | Supabase; password required for edits and personal progress      |
+| Vercel              | See [deployment](docs/deployment.md)                                           | Public lessons; password-protected changes and personal progress |
 
 Demo servers are for trusted local use. The commands bind to all network interfaces.
 

@@ -14,6 +14,8 @@ export function useProgress(
   initial: StudyState,
   initialRevision: number | null,
   localDemo: boolean,
+  canEdit: boolean,
+  onAccessExpired: () => void,
 ) {
   const [state, setState] = useState(initial);
   const [loaded, setLoaded] = useState(false);
@@ -36,8 +38,10 @@ export function useProgress(
           body: JSON.stringify({ state, revision }),
         });
         if (response.status === 401) {
-          window.location.replace("/sign-in");
-          throw new Error("Unlock the app to continue.");
+          onAccessExpired();
+          throw new ProgressSaveError(
+            "Editing access expired. Enable editing again to save your changes.",
+          );
         }
         const result = await response.json();
         if (response.status === 409)
@@ -53,7 +57,7 @@ export function useProgress(
     );
 
   const retrySync = useCallback(async () => {
-    if (initialRevision === null) return false;
+    if (!canEdit || initialRevision === null) return false;
     try {
       const saved = await sync.current!.save();
       if (saved) setSyncError("");
@@ -69,7 +73,7 @@ export function useProgress(
       );
       return false;
     }
-  }, [initialRevision]);
+  }, [initialRevision, canEdit]);
 
   useEffect(() => {
     if (localDemo) {
@@ -95,11 +99,19 @@ export function useProgress(
       }
       return;
     }
-    if (initialRevision === null) return;
     sync.current!.update(state);
+    if (!canEdit || initialRevision === null) return;
     const timer = setTimeout(() => void retrySync(), 500);
     return () => clearTimeout(timer);
-  }, [state, loaded, localDemo, retrySync, initialRevision]);
+  }, [state, loaded, localDemo, retrySync, initialRevision, canEdit]);
 
-  return { state, setState, syncError, conflict, retrySync, storageError };
+  return {
+    state,
+    setState,
+    syncError,
+    conflict,
+    retrySync,
+    storageError,
+    hasPendingChanges: () => sync.current!.hasPendingChanges(),
+  };
 }

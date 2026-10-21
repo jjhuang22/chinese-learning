@@ -1679,3 +1679,18 @@ main {
     font-size: 18px;
   }
 }
+
+.editing-access-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.editing-access-form [role="alert"] {
+  color: #934b35;
+  font-size: 13px;
+  margin: 0;
+}
+.editing-trigger {
+  font-size: 12px;
+  min-height: 40px;
+}

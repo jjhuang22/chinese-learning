@@ -64,7 +64,7 @@ test("saving a highlight updates the suggestions once, persists, and supports ar
   ).toBeDisabled();
   await nav(page, "Review");
   await expect(
-    page.getByRole("heading", { name: "1 cards to revisit" }),
+    page.getByRole("heading", { name: "1 card to review" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Start review" }).click();
   await expect(page.locator(".card-answer")).toHaveCount(0);
