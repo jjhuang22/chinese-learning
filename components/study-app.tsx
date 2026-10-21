@@ -29,7 +29,7 @@ export default function StudyApp({
   initialLessons: Lesson[];
   localDemo: boolean;
   initialState?: StudyState;
-  initialRevision?: number;
+  initialRevision?: number | null;
 }) {
   const [page, setPage] = useState<Page>("today");
   const [lessons, setLessons] = useState<Lesson[]>(initialLessons);
@@ -273,7 +273,7 @@ export default function StudyApp({
         {syncError && (
           <div className="warning">
             {syncError}{" "}
-            {conflict ? (
+            {conflict || initialRevision === null ? (
               <button onClick={exportProgress}>Export unsaved progress</button>
             ) : (
               <button onClick={retrySync}>Retry sync</button>

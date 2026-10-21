@@ -5,24 +5,14 @@ import {
   requireSameOrigin,
   requireUser,
 } from "@/lib/server";
-import { emptyState } from "@/lib/model";
+import { loadProgress } from "@/lib/load-progress";
 import { progressSnapshotSchema, revisionSchema } from "@/lib/progress-schema";
 export async function GET() {
   try {
     const { db, learnerId } = await requireUser();
-    const { data, error } = await db
-      .from("learner_state")
-      .select("data, revision")
-      .eq("user_id", learnerId)
-      .maybeSingle();
-    if (error) throw new ApiError("Could not load your progress.", 503);
-    return Response.json(
-      progressSnapshotSchema.parse({
-        state: data?.data ?? emptyState,
-        revision: data?.revision ?? 0,
-      }),
-      { headers: { "Cache-Control": "private, no-store" } },
-    );
+    return Response.json(await loadProgress(db, learnerId), {
+      headers: { "Cache-Control": "private, no-store" },
+    });
   } catch (error) {
     return errorResponse(error);
   }
