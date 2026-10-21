@@ -1,0 +1,166 @@
+[
+  {
+    "id": "demo-1",
+    "date": "2026-10-20",
+    "title": "散步前的安排",
+    "subtitle": "",
+    "passages": [
+      {
+        "title": "約個時間",
+        "format": "Dialogue",
+        "sentences": [
+          {
+            "text": "甲：你昨天不是在群組裡約大家去散步嗎？",
+            "pinyin": "Jiǎ: Nǐ zuótiān bú shì zài qúnzǔ lǐ yuē dàjiā qù sànbù ma?",
+            "paragraph": 0
+          },
+          {
+            "text": "現在安排得怎麼樣了？",
+            "pinyin": "Xiànzài ānpái de zěnmeyàng le?",
+            "paragraph": 0
+          },
+          {
+            "text": "乙：我想先觀望一下，再決定去哪裡。",
+            "pinyin": "Yǐ: Wǒ xiǎng xiān guānwàng yíxià, zài juédìng qù nǎlǐ.",
+            "paragraph": 1
+          },
+          {
+            "text": "如果湊不到人，我們就改天再去。",
+            "pinyin": "Rúguǒ còu bu dào rén, wǒmen jiù gǎitiān zài qù.",
+            "paragraph": 1
+          }
+        ]
+      },
+      {
+        "title": "把安排說清楚",
+        "format": "Reflection",
+        "sentences": [
+          {
+            "text": "安排活動時，先把時間說清楚，大家比較容易決定。",
+            "pinyin": "Ānpái huódòng shí, xiān bǎ shíjiān shuō qīngchǔ, dàjiā bǐjiào róngyì juédìng.",
+            "paragraph": 0
+          },
+          {
+            "text": "如果有人還沒確定，也可以留一點彈性。",
+            "pinyin": "Rúguǒ yǒu rén hái méi quèdìng, yě kěyǐ liú yìdiǎn tánxìng.",
+            "paragraph": 0
+          },
+          {
+            "text": "計畫不需要完美，只要讓每個人知道下一步就好。",
+            "pinyin": "Jìhuà bù xūyào wánměi, zhǐyào ràng měi ge rén zhīdào xià yí bù jiù hǎo.",
+            "paragraph": 1
+          }
+        ]
+      }
+    ],
+    "suggestions": [
+      {
+        "id": "demo-0-v0",
+        "text": "湊不到人",
+        "pinyin": "còu bu dào rén",
+        "meaning": "Cannot gather enough people.",
+        "sentence": "乙：如果湊不到人，我們就改天再去。",
+        "kind": "vocabulary"
+      },
+      {
+        "id": "demo-0-v1",
+        "text": "觀望",
+        "pinyin": "guānwàng",
+        "meaning": "Wait and see before deciding.",
+        "sentence": "乙：我想先觀望一下，再決定去哪裡。",
+        "kind": "vocabulary"
+      },
+      {
+        "id": "demo-0-v2",
+        "text": "改天",
+        "pinyin": "gǎitiān",
+        "meaning": "Another day; some other time.",
+        "sentence": "乙：如果湊不到人，我們就改天再去。",
+        "kind": "vocabulary"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "id": "demo-2",
+    "date": "2026-10-21",
+    "title": "一起安排週末的活動",
+    "subtitle": "",
+    "passages": [
+      {
+        "title": "約個時間",
+        "format": "Dialogue",
+        "sentences": [
+          {
+            "text": "甲：你昨天不是在群組裡約大家去散步嗎？",
+            "pinyin": "Jiǎ: Nǐ zuótiān bú shì zài qúnzǔ lǐ yuē dàjiā qù sànbù ma?",
+            "paragraph": 0
+          },
+          {
+            "text": "現在安排得怎麼樣了？",
+            "pinyin": "Xiànzài ānpái de zěnmeyàng le?",
+            "paragraph": 0
+          },
+          {
+            "text": "乙：我想先觀望一下，再決定去哪裡。",
+            "pinyin": "Yǐ: Wǒ xiǎng xiān guānwàng yíxià, zài juédìng qù nǎlǐ.",
+            "paragraph": 1
+          },
+          {
+            "text": "如果湊不到人，我們就改天再去。",
+            "pinyin": "Rúguǒ còu bu dào rén, wǒmen jiù gǎitiān zài qù.",
+            "paragraph": 1
+          }
+        ]
+      },
+      {
+        "title": "把安排說清楚",
+        "format": "Reflection",
+        "sentences": [
+          {
+            "text": "安排活動時，先把時間說清楚，大家比較容易決定。",
+            "pinyin": "Ānpái huódòng shí, xiān bǎ shíjiān shuō qīngchǔ, dàjiā bǐjiào róngyì juédìng.",
+            "paragraph": 0
+          },
+          {
+            "text": "如果有人還沒確定，也可以留一點彈性。",
+            "pinyin": "Rúguǒ yǒu rén hái méi quèdìng, yě kěyǐ liú yìdiǎn tánxìng.",
+            "paragraph": 0
+          },
+          {
+            "text": "計畫不需要完美，只要讓每個人知道下一步就好。",
+            "pinyin": "Jìhuà bù xūyào wánměi, zhǐyào ràng měi ge rén zhīdào xià yí bù jiù hǎo.",
+            "paragraph": 1
+          }
+        ]
+      }
+    ],
+    "suggestions": [
+      {
+        "id": "demo-1-v0",
+        "text": "湊不到人",
+        "pinyin": "còu bu dào rén",
+        "meaning": "Cannot gather enough people.",
+        "sentence": "乙：如果湊不到人，我們就改天再去。",
+        "kind": "vocabulary"
+      },
+      {
+        "id": "demo-1-v1",
+        "text": "觀望",
+        "pinyin": "guānwàng",
+        "meaning": "Wait and see before deciding.",
+        "sentence": "乙：我想先觀望一下，再決定去哪裡。",
+        "kind": "vocabulary"
+      },
+      {
+        "id": "demo-1-v2",
+        "text": "改天",
+        "pinyin": "gǎitiān",
+        "meaning": "Another day; some other time.",
+        "sentence": "乙：如果湊不到人，我們就改天再去。",
+        "kind": "vocabulary"
+      }
+    ],
+    "notes": []
+  }
+]

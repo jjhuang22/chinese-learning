@@ -1,0 +1,53 @@
+Continue my daily traditional-Chinese learning lessons at 8 AM America/New_York. Keep the current upper-intermediate/advanced level and Taiwan Mandarin conventions. Preserve the two related passages: usually a natural dialogue and a reflective passage, with occasional formal writing, letters, or interviews. Aim for roughly 450–650 Chinese characters per passage. Include nuanced vocabulary and grammar usage, and naturally reuse relevant expressions from earlier lessons in this thread. Ask me for occasional difficulty feedback. The separate web app cannot send its card history or feedback back to this thread automatically; reuse only history I have shared here.
+
+Change the OUTPUT FORMAT only. Return exactly ONE valid JSON object for each daily lesson. No introduction, closing text, comments, Markdown code fences, or SQL. Use double-quoted JSON keys and strings. Escape embedded double quotes and line breaks properly. Do not add fields, IDs, user identifiers, or credentials.
+
+Exact fields:
+{
+  "schemaVersion": 1,
+  "date": "YYYY-MM-DD",
+  "title": "Today's theme in traditional Chinese",
+  "passages": [
+    {
+      "title": "First passage title",
+      "format": "Dialogue",
+      "sentences": [
+        {"text": "甲：第一句。", "pinyin": "Tone-mark pinyin matching this exact sentence.", "paragraph": 0},
+        {"text": "同一段的下一句。", "pinyin": "Matching pinyin.", "paragraph": 0},
+        {"text": "乙：另一段。", "pinyin": "Matching pinyin.", "paragraph": 1}
+      ]
+    },
+    {
+      "title": "Second passage title",
+      "format": "Reflection",
+      "sentences": [
+        {"text": "第一句。", "pinyin": "Matching pinyin.", "paragraph": 0},
+        {"text": "同一段的下一句。", "pinyin": "Matching pinyin.", "paragraph": 0},
+        {"text": "另一段。", "pinyin": "Matching pinyin.", "paragraph": 1}
+      ]
+    }
+  ],
+  "suggestions": [
+    {"text": "詞語", "pinyin": "cíyǔ", "meaning": "Concise English meaning and nuance in this context.", "sentence": "Copy an exact source sentence from passages[].sentences[].text here.", "kind": "vocabulary"},
+    {"text": "另一個詞語", "pinyin": "Accurate pinyin", "meaning": "Contextual meaning.", "sentence": "Another exact source sentence.", "kind": "vocabulary"},
+    {"text": "與其……不如……", "pinyin": "yǔqí…bùrú…", "meaning": "Explain the pattern and its usage.", "sentence": "An exact passage sentence illustrating this pattern.", "kind": "grammar"}
+  ],
+  "notes": [
+    {"title": "A grammar or usage distinction", "text": "A deeper English explanation with traditional-Chinese examples and tone-mark pinyin. Use JSON newline escapes between paragraphs as appropriate."}
+  ]
+}
+
+The sample field values above describe the structure; replace them with real lesson content, not placeholders.
+
+Requirements:
+- date is the lesson's date in America/New_York, in YYYY-MM-DD format, and must be a real calendar date.
+- Exactly 2 passages; each has at least 3 sentence objects. Each object contains one complete sentence or short speaker turn with matching tone-mark pinyin. All written Chinese is traditional.
+- format is exactly one of: Dialogue, Reflection, Formal, Letter, Interview.
+- paragraph numbers restart at 0 in each passage. Consecutive sentences in one paragraph share the number. Increment by exactly 1 when starting a new paragraph or speaker turn. Never decrease or skip a number.
+- Include 8–14 vocabulary/idiom suggestions and 1–2 grammar/usage suggestions; at least 3 suggestions total. Keep the expressions useful rather than just numerous.
+- A vocabulary suggestion's text must appear literally in its sentence. Every suggestion's sentence must be copied EXACTLY from a sentence text in one of the two passages, including punctuation and any speaker label. Do not paraphrase it or combine separate sentence objects. A grammar pattern may contain ellipses, but its source sentence must demonstrate the pattern.
+- Meanings and grammar explanations are in English. Pinyin uses tone marks and the context-appropriate pronunciation, including Taiwan usage and tone changes where appropriate.
+- notes contains 1–2 useful, deeper grammar/usage explanations. It may be an empty array when there is no useful note.
+- Do NOT reproduce a full pinyin edition at the bottom. Pinyin already accompanies each sentence in the structured data; the app reveals it on demand.
+- No HTML, SQL, credentials, or identifiers. The app assigns its own IDs after import.
+- Validate the JSON syntax before returning it.
