@@ -83,7 +83,12 @@ test("unlocked API scopes the library and progress to the configured learner, th
     feedback: {},
   };
   expect(
-    (await request.put("/api/progress", { headers, data: state })).status(),
+    (
+      await request.put("/api/progress", {
+        headers,
+        data: { state, revision: 0 },
+      })
+    ).status(),
   ).toBe(200);
   const result = await request.get(
     "/api/progress?user_id=22222222-2222-4222-8222-222222222222",
@@ -175,6 +180,139 @@ test("reader creates cards, saves through the protected server API, and restores
   ).toBeVisible();
 });
 
+test("stale progress writes return a conflict and preserve the newer snapshot", async ({
+  request,
+}) => {
+  const token = await unlock(request);
+  const headers = { Cookie: `everyday_session=${token}`, Origin: origin };
+  const state = { cards: [], dismissed: [], read: ["newer"], feedback: {} };
+  const first = await request.put("/api/progress", {
+    headers,
+    data: { state, revision: 0 },
+  });
+  expect(first.status()).toBe(200);
+  expect((await first.json()).revision).toBe(1);
+  const stale = await request.put("/api/progress", {
+    headers,
+    data: { state: { ...state, read: [] }, revision: 0 },
+  });
+  expect(stale.status()).toBe(409);
+  const result = await request.get("/api/progress", { headers });
+  expect(await result.json()).toEqual({ state, revision: 1 });
+  expect(
+    (await request.put("/api/progress", { headers, data: state })).status(),
+  ).toBe(400);
+});
+
+test("opening a reader does not save; overlapping edits are saved in order", async ({
+  request,
+  page,
+}) => {
+  const token = await unlock(request);
+  await page.context().addCookies([
+    {
+      name: "everyday_session",
+      value: token,
+      url: origin,
+      secure: false,
+      httpOnly: true,
+      sameSite: "Strict",
+    },
+  ]);
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let firstSeen!: () => void;
+  const firstRequest = new Promise<void>((resolve) => {
+    firstSeen = resolve;
+  });
+  const revisions: number[] = [];
+  await page.route("**/api/progress", async (route) => {
+    if (route.request().method() === "PUT") {
+      revisions.push(route.request().postDataJSON().revision);
+      if (revisions.length === 1) {
+        firstSeen();
+        await held;
+      }
+    }
+    await route.continue();
+  });
+  await page.goto("/");
+  await expect(page.locator(".lesson-heading h1")).toBeVisible();
+  await page.waitForTimeout(750); // Exceed the 500 ms debounce to detect mount-only writes.
+  expect(revisions).toEqual([]);
+  try {
+    await page
+      .locator(".suggestion-card")
+      .first()
+      .getByRole("button", { name: "Save flashcard", exact: true })
+      .click();
+    await firstRequest;
+    await page
+      .getByRole("button", { name: "Mark as read", exact: true })
+      .click();
+    await page.waitForTimeout(750);
+    expect(revisions).toEqual([0]);
+  } finally {
+    release();
+  }
+  await expect
+    .poll(async () => {
+      const result = await request.get("/api/progress", {
+        headers: { Cookie: `everyday_session=${token}` },
+      });
+      const { state, revision } = await result.json();
+      return { cards: state.cards.length, read: state.read.length, revision };
+    })
+    .toEqual({ cards: 1, read: 1, revision: 2 });
+  expect(revisions).toEqual([0, 1]);
+});
+
+test("another device's save blocks stale UI edits and keeps them available to export", async ({
+  request,
+  page,
+}) => {
+  const token = await unlock(request);
+  await page.context().addCookies([
+    {
+      name: "everyday_session",
+      value: token,
+      url: origin,
+      secure: false,
+      httpOnly: true,
+      sameSite: "Strict",
+    },
+  ]);
+  await page.goto("/");
+  await expect(page.locator(".lesson-heading h1")).toBeVisible();
+  const state = {
+    cards: [],
+    dismissed: [],
+    read: ["other-device"],
+    feedback: {},
+  };
+  expect(
+    (
+      await request.put("/api/progress", {
+        headers: { Cookie: `everyday_session=${token}`, Origin: origin },
+        data: { state, revision: 0 },
+      })
+    ).status(),
+  ).toBe(200);
+  await page.getByRole("button", { name: "Too hard", exact: true }).click();
+  await expect(page.locator(".warning")).toContainText(
+    "Progress changed on another device",
+  );
+  await expect(page.getByRole("button", { name: "Retry sync" })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Too hard", exact: true }),
+  ).toHaveClass("selected");
+  const result = await request.get("/api/progress", {
+    headers: { Cookie: `everyday_session=${token}` },
+  });
+  expect((await result.json()).state).toEqual(state);
+});
 for (const viewport of [
   { width: 1280, height: 800 },
   { width: 390, height: 844 },

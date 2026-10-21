@@ -6,18 +6,21 @@ import {
   requireUser,
 } from "@/lib/server";
 import { emptyState } from "@/lib/model";
-import { progressSchema } from "@/lib/progress-schema";
+import { progressSnapshotSchema, revisionSchema } from "@/lib/progress-schema";
 export async function GET() {
   try {
     const { db, learnerId } = await requireUser();
     const { data, error } = await db
       .from("learner_state")
-      .select("data")
+      .select("data, revision")
       .eq("user_id", learnerId)
       .maybeSingle();
     if (error) throw new ApiError("Could not load your progress.", 503);
     return Response.json(
-      { state: data?.data ?? emptyState },
+      progressSnapshotSchema.parse({
+        state: data?.data ?? emptyState,
+        revision: data?.revision ?? 0,
+      }),
       { headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {
@@ -28,29 +31,32 @@ export async function PUT(request: Request) {
   try {
     const { db, learnerId } = await requireUser();
     requireSameOrigin(request);
-    let state;
+    let snapshot;
     try {
-      state = progressSchema.parse(
+      snapshot = progressSnapshotSchema.parse(
         JSON.parse(await readBody(request, 2_000_000)),
       );
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError("The progress data is invalid.", 400);
     }
-    const { error } = await db
-      .from("learner_state")
-      .upsert({
-        user_id: learnerId,
-        data: state,
-        updated_at: new Date().toISOString(),
-      });
+    const { data: revision, error } = await db.rpc("save_progress", {
+      learner_id: learnerId,
+      expected_revision: snapshot.revision,
+      progress_data: snapshot.state,
+    });
     if (error)
       throw new ApiError(
-        "Could not save your progress. Keep this tab open and retry.",
+        "Could not save your progress. Check the connection and apply the current Supabase schema.",
         503,
       );
+    if (revision === null)
+      throw new ApiError(
+        "Progress changed on another device. Export your progress before reloading; your changes have not been saved.",
+        409,
+      );
     return Response.json(
-      { saved: true },
+      { saved: true, revision: revisionSchema.parse(revision) },
       { headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {

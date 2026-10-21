@@ -81,7 +81,7 @@ export const importSchema = z
     lesson.suggestions.forEach((s, i) => {
       if (
         !lesson.passages.some((p) =>
-          p.sentences.some((sentence) => sentence.text.includes(s.sentence)),
+          p.sentences.some((sentence) => sentence.text === s.sentence),
         )
       )
         ctx.addIssue({
