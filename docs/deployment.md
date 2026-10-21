@@ -9,7 +9,7 @@ Your Supabase project: https://pvyqbkvdqllcevmohdyu.supabase.co
 
 The app source must be committed and pushed to `jjhuang22/chinese-learning` before Vercel can deploy it. Creating a Vercel project or adding environment variables does not upload this workspace's code. If the repository has no `main` branch yet, its initial code push must create it.
 
-In Vercel, open the project → Settings → Git and confirm the connected repository is `jjhuang22/chinese-learning` and the Production Branch is `main`. Use the Next.js framework preset and the repository root. The defaults `npm install` / `npm run build` work; use Node.js 22 or newer.
+In Vercel, open the project → Settings → Git and confirm the connected repository is `jjhuang22/chinese-learning` and the Production Branch is `main`. Use the repository root (leave Root Directory blank). The checked-in vercel.json pins framework=nextjs, buildCommand=npm run build, and outputDirectory=.next so Vercel cannot treat this as a static public/ deployment. Use Node.js 22 or newer.
 
 Under Settings → Environment Variables, the application now requires only:
 
@@ -102,3 +102,7 @@ Cloud progress is kept in Supabase and memory, not mirrored into browser local s
 Local browser tests cover paste → preview → save → reload → Library → card creation/review. A PostgreSQL-compatible local engine exercises the actual schema, owner insert/read, duplicate protection, anonymous/cross-user denial, and the exact copy-paste SQL example. These tests do not prove your remote Supabase project or email delivery is configured.
 
 Live verification requires the current code to be deployed, the schema applied, and your successful sign-in. This coding workspace currently has no Supabase credentials and its network proxy blocked both project URLs before reaching them. Vercel environment variables are not automatically available to the coding workspace. If you want the agent to check the public site directly, allow the two exact project hostnames in the cloud environment's network settings. Network draft changes require review/save; publication is separate.
+
+## Healthy deployment but every app page is 404
+
+If /icon.svg and /example-lesson.json return 200 while /, /sign-in, /manifest.webmanifest, and /api/import return Vercel NOT_FOUND, the deployment is serving public assets without the Next.js runtime. The repository's vercel.json explicitly selects Next.js and .next output. Deploy the latest main commit and keep Root Directory at the repository root. A correct build's output includes /sign-in, the dynamic / page, /api/import, /auth/callback, and the proxy. Do not change Supabase login settings to resolve this deployment-level 404.
