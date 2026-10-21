@@ -21,3 +21,15 @@ export const progressSchema = z
     ),
   })
   .strict();
+
+export const revisionSchema = z
+  .number()
+  .int()
+  .nonnegative()
+  .max(Number.MAX_SAFE_INTEGER);
+export const progressSnapshotSchema = z
+  .object({
+    state: progressSchema,
+    revision: revisionSchema,
+  })
+  .strict();

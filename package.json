@@ -10,7 +10,11 @@
     "test": "playwright test",
     "test:privacy": "playwright test --config=playwright.privacy.config.ts",
     "test:database": "playwright test --config=playwright.database.config.ts",
-    "test:passcode": "playwright test --config=playwright.passcode.config.ts"
+    "test:passcode": "playwright test --config=playwright.passcode.config.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run format:check && npm run build && npm run typecheck && npm run test:database && npm test && npm run test:privacy && npm run test:passcode",
+    "import:lessons": "node --env-file=.env.local --experimental-strip-types scripts/import-lessons.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
@@ -30,5 +34,8 @@
     "prettier": "^3.9.10",
     "sharp": "^0.35.5",
     "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }
