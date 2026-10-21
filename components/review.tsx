@@ -12,6 +12,7 @@ import {
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type { StudyState, Suggestion } from "@/lib/model";
 import { matchesCardSearch } from "@/lib/card-search";
+import { createReviewSession } from "@/lib/review-session";
 export default function Review({
   state,
   setState,
@@ -34,7 +35,7 @@ export default function Review({
   const [cursor, setCursor] = useState(0);
   const [flipped, setFlipped] = useState(false);
   function startSession() {
-    setSession(due.slice(0, 12).map((c) => c.id));
+    setSession(createReviewSession(due));
     setCursor(0);
     setFlipped(false);
   }

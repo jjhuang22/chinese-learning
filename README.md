@@ -54,8 +54,8 @@ Demo servers are for trusted local use. The commands bind to all network interfa
 
 - Read two related passages per lesson. Pinyin starts on; turn off Show all pinyin to reveal individual sentences by tapping.
 - Tap highlighted vocabulary for contextual meaning. Save suggestions individually or in bulk; dismissed suggestions stay out of bulk saves.
-- Select another phrase to create a card with dictionary-generated pinyin and a meaning you enter. Card identity ignores spacing and common punctuation.
-- Review up to 12 due cards. **Keep reviewing** requeues a card once per session and schedules another review in 1–7 days. **Understand already** archives it; an optional refresher becomes available after 30 days.
+- Select another phrase to create a card with dictionary-generated pinyin and a meaning you enter. Manually saved phrases receive the same accepted-vocabulary highlighting in their source lesson. Card identity ignores spacing and common punctuation.
+- Review a shuffled selection of up to 12 due cards. **Keep reviewing** requeues a card once per session and schedules another review in 1–7 days. **Understand already** archives it; an optional refresher becomes available after 30 days.
 - Browse, edit, archive, or restore cards. Mark lessons read.
 
 Lessons are stored individually in `lessons`. Cards, dismissed suggestions, read markers, and feedback share one JSON document in `learner_state`. Cloud saves happen after edits, one request at a time. A revision check rejects stale saves from another tab/device. If a conflict appears, use **Export unsaved progress** in the conflict warning before reloading; conflicts are not merged automatically.

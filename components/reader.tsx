@@ -53,8 +53,15 @@ export default function Reader({
     }));
   }
   function textParts(text: string) {
-    const terms = lesson.suggestions
-      .filter((s) => s.kind === "vocabulary" && text.includes(s.text))
+    const terms = [
+      ...new Map(
+        [
+          ...lesson.suggestions.filter((s) => s.kind === "vocabulary"),
+          ...state.cards.filter((c) => c.lessonId === lesson.id),
+        ].map((term) => [term.text, term]),
+      ).values(),
+    ]
+      .filter((term) => term.text.length > 0 && text.includes(term.text))
       .sort((a, b) => b.text.length - a.text.length);
     if (!terms.length) return text;
     const escaped = terms.map((s) =>

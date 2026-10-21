@@ -122,6 +122,21 @@ test("arbitrary selected phrases become editable contextual cards", async ({
     .getByRole("dialog")
     .getByRole("button", { name: "Save flashcard", exact: true })
     .click();
+  const manualHighlight = page.getByRole("button", {
+    name: "Look up 群組",
+    exact: true,
+  });
+  await expect(manualHighlight).toHaveClass(/word-saved/);
+  await manualHighlight.click();
+  await expect(
+    page.getByRole("dialog").locator(".context-sentence"),
+  ).toContainText("群組");
+  await expect(page.getByRole("dialog").locator(".dialog-meaning")).toHaveText(
+    "A group chat",
+  );
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page.reload();
+  await expect(manualHighlight).toHaveClass(/word-saved/);
   await nav(page, "Review");
   await expect(page.locator(".deck-word")).toContainText("群組");
 });
