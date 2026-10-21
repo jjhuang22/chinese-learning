@@ -1813,3 +1813,19 @@ main {
 .import-preview .muted {
   font-size: 11px;
 }
+.auth-error-detail {
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.auth-error-detail summary {
+  cursor: pointer;
+}
+.auth-error-detail p {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  padding: 10px;
+  background: var(--wash);
+  border-radius: 4px;
+}

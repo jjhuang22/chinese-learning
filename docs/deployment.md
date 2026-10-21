@@ -49,7 +49,7 @@ In Authentication → URL Configuration set:
 
 For production the exact URL above is sufficient. Add your local callback or a specific preview callback only if testing there. Do not add broad redirect wildcards to make a failing redirect work.
 
-Open the deployed site. It must show Sign in before revealing any lessons. Enter your approved email, open the emailed link **in the same browser/device where you requested it**, and return to the app. The cookie login uses PKCE, so the requesting browser must retain the verifier. On iPhone, request the link in Safari and open it in that Safari context. If you get an invalid/expired-link error, request a fresh link rather than reusing one.
+Open the deployed site. It must show Sign in before revealing any lessons. Enter your approved email, open the emailed link **in the same browser/device where you requested it**, and return to the app. The cookie login uses PKCE, so the requesting browser must retain the verifier. On iPhone, request the link in Safari and open it in that Safari context. If you get an invalid/expired-link error, request a fresh link rather than reusing one. A diagnostic email requested by an agent or another device cannot sign you in here: its PKCE verifier belongs to the requesting environment. The app distinguishes a missing/mismatched verifier from a generally expired link.
 
 If email delivery fails, check that the user exists/is confirmed, inspect Supabase Authentication logs, and check the project's email limits. Configure SMTP if needed; that is separate from application environment variables. Do not disable row-level security to fix a login problem.
 

@@ -5,6 +5,16 @@ export async function GET(request: NextRequest) {
   const db = await authClient();
   if (code && db) {
     const { error } = await db.auth.exchangeCodeForSession(code);
+    if (
+      error &&
+      ["bad_code_verifier", "pkce_code_verifier_not_found"].includes(
+        error.code ?? "",
+      )
+    ) {
+      return NextResponse.redirect(
+        new URL("/sign-in?error=browser", request.url),
+      );
+    }
     if (!error) {
       const {
         data: { user },
