@@ -52,7 +52,7 @@ Demo servers are for trusted local use. The commands bind to all network interfa
 
 ## Reading and review
 
-- Read two related passages per lesson. Pinyin starts on; turn off Show all pinyin to reveal individual sentences by tapping.
+- Read two or three related passages per lesson. Pinyin starts on; turn off Show all pinyin to reveal individual sentences by tapping.
 - Tap highlighted vocabulary for contextual meaning. Save suggestions individually or in bulk; dismissed suggestions stay out of bulk saves.
 - Select another phrase to create a card with dictionary-generated pinyin and a meaning you enter. Manually saved phrases receive the same accepted-vocabulary highlighting in their source lesson. Card identity ignores spacing and common punctuation.
 - Review a shuffled selection of up to 12 due cards. **Keep reviewing** requeues a card once per session and schedules another review in 1–7 days. **Understand already** archives it; an optional refresher becomes available after 30 days.

@@ -41,7 +41,8 @@ export const importSchema = z
           })
           .strict(),
       )
-      .length(2),
+      .min(2)
+      .max(3),
     suggestions: z
       .array(
         z

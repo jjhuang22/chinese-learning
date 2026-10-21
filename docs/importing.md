@@ -1,6 +1,6 @@
 # Lesson import format v1
 
-Copy [automation instructions](../public/automation-instructions.txt) into the ChatGPT automation. A complete, valid example is in [example JSON](../public/example-lesson.json).
+The configured daily task saves directly through Supabase; see [automatic lessons](automatic-lessons.md). For a manual JSON-generation workflow, copy [automation instructions](../public/automation-instructions.txt) into the ChatGPT automation. A complete, valid example is in [example JSON](../public/example-lesson.json).
 
 The external document has exactly these keys:
 
@@ -9,7 +9,7 @@ The external document has exactly these keys:
 | `schemaVersion` | number | Exactly 1                                    |
 | `date`          | string | Real YYYY-MM-DD date, unique in your library |
 | `title`         | string | Traditional-Chinese theme/title              |
-| `passages`      | array  | Exactly two passages                         |
+| `passages`      | array  | Two or three passages                        |
 | `suggestions`   | array  | 3–60 vocabulary/grammar suggestions          |
 | `notes`         | array  | Usage notes, or []                           |
 

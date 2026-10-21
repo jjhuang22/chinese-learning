@@ -41,11 +41,11 @@ The sample field values above describe the structure; replace them with real les
 
 Requirements:
 - date is the lesson's date in America/New_York, in YYYY-MM-DD format, and must be a real calendar date.
-- Exactly 2 passages; each has at least 3 sentence objects. Each object contains one complete sentence or short speaker turn with matching tone-mark pinyin. All written Chinese is traditional.
+- 2–3 passages; each has at least 3 sentence objects. Each object contains one complete sentence or short speaker turn with matching tone-mark pinyin. All written Chinese is traditional.
 - format is exactly one of: Dialogue, Reflection, Formal, Letter, Interview.
 - paragraph numbers restart at 0 in each passage. Consecutive sentences in one paragraph share the number. Increment by exactly 1 when starting a new paragraph or speaker turn. Never decrease or skip a number.
 - Err on the side of including more useful vocabulary, ordinary words, idioms, collocations, and meaningful phrases warranted by the reading. It is easier to decline a suggested flashcard than create one that was omitted. Any suggested vocabulary count is a rough guide, not a hard cutoff. Include 1–2 grammar/usage suggestions when useful; at least 3 suggestions total. Do not add obscure or redundant items merely to increase the count.
-- A vocabulary suggestion's text must appear literally in its sentence. Every suggestion's sentence must be copied EXACTLY from a sentence text in one of the two passages, including punctuation and any speaker label. Do not paraphrase it or combine separate sentence objects. A grammar pattern may contain ellipses, but its source sentence must demonstrate the pattern.
+- A vocabulary suggestion's text must appear literally in its sentence. Every suggestion's sentence must be copied EXACTLY from a sentence text in one of the passages, including punctuation and any speaker label. Do not paraphrase it or combine separate sentence objects. A grammar pattern may contain ellipses, but its source sentence must demonstrate the pattern.
 - Meanings and grammar explanations are in English. Pinyin uses tone marks and the context-appropriate pronunciation, including Taiwan usage and tone changes where appropriate.
 - notes contains 1–2 useful, deeper grammar/usage explanations. It may be an empty array when there is no useful note.
 - Do NOT reproduce a full pinyin edition at the bottom. Pinyin already accompanies each sentence in the structured data; the app reveals it on demand.
