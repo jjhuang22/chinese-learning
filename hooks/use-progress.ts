@@ -12,19 +12,23 @@ const STORAGE = "everyday-chinese-v1";
 
 export function useProgress(
   initial: StudyState,
-  initialRevision: number,
+  initialRevision: number | null,
   localDemo: boolean,
 ) {
   const [state, setState] = useState(initial);
   const [loaded, setLoaded] = useState(false);
-  const [syncError, setSyncError] = useState("");
+  const [syncError, setSyncError] = useState(
+    initialRevision === null
+      ? "Saving is unavailable until the database update is complete. Export any changes before reloading."
+      : "",
+  );
   const [conflict, setConflict] = useState(false);
   const [storageError, setStorageError] = useState("");
   const sync = useRef<ProgressSync | null>(null);
   if (!sync.current)
     sync.current = new ProgressSync(
       initial,
-      initialRevision,
+      initialRevision ?? 0,
       async (state, revision) => {
         const response = await fetch("/api/progress", {
           method: "PUT",
@@ -49,6 +53,7 @@ export function useProgress(
     );
 
   const retrySync = useCallback(async () => {
+    if (initialRevision === null) return false;
     try {
       const saved = await sync.current!.save();
       if (saved) setSyncError("");
@@ -64,7 +69,7 @@ export function useProgress(
       );
       return false;
     }
-  }, []);
+  }, [initialRevision]);
 
   useEffect(() => {
     if (localDemo) {
@@ -90,10 +95,11 @@ export function useProgress(
       }
       return;
     }
+    if (initialRevision === null) return;
     sync.current!.update(state);
     const timer = setTimeout(() => void retrySync(), 500);
     return () => clearTimeout(timer);
-  }, [state, loaded, localDemo, retrySync]);
+  }, [state, loaded, localDemo, retrySync, initialRevision]);
 
   return { state, setState, syncError, conflict, retrySync, storageError };
 }

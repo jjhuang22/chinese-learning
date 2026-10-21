@@ -3,9 +3,8 @@ import { redirect } from "next/navigation";
 import StudyApp from "@/components/study-app";
 import { adminClient } from "@/lib/server";
 import { isUnlocked } from "@/lib/passcode";
-import { progressSchema, revisionSchema } from "@/lib/progress-schema";
+import { loadProgress } from "@/lib/load-progress";
 import { loadLessons } from "@/lib/library";
-import { emptyState } from "@/lib/model";
 import { localDemoAllowed } from "@/lib/demo";
 import { lessonSchema, type Lesson } from "@/lib/model";
 import samples from "@/lib/sample-lessons.json";
@@ -35,22 +34,14 @@ export default async function Page() {
   const { db, learnerId } = adminClient();
   const [history, progress] = await Promise.all([
     loadLessons(db, learnerId),
-    db
-      .from("learner_state")
-      .select("data, revision")
-      .eq("user_id", learnerId)
-      .maybeSingle(),
+    loadProgress(db, learnerId),
   ]);
-  if (progress.error)
-    throw new Error(
-      "Your private library could not be loaded. Check Supabase setup.",
-    );
   const initialLessons = history;
   return (
     <StudyApp
       initialLessons={initialLessons}
-      initialState={progressSchema.parse(progress.data?.data ?? emptyState)}
-      initialRevision={revisionSchema.parse(progress.data?.revision ?? 0)}
+      initialState={progress.state}
+      initialRevision={progress.revision}
       localDemo={false}
     />
   );

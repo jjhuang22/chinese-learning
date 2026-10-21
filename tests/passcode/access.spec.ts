@@ -486,3 +486,53 @@ test("keep reviewing retains a failed save, retries it, and persists both sessio
   await expect(page.locator(".deck-list article")).toHaveCount(1);
   await expect(page.locator(".warning")).toHaveCount(0);
 });
+
+test("missing revision metadata keeps the authenticated library readable without unsafe saves", async ({
+  request,
+  page,
+}) => {
+  expect(
+    (
+      await request.post("http://127.0.0.1:4010/__reset?missing-revision=1")
+    ).ok(),
+  ).toBe(true);
+  const token = await unlock(request);
+  await page.context().addCookies([
+    {
+      name: "everyday_session",
+      value: token,
+      url: origin,
+      secure: false,
+      httpOnly: true,
+      sameSite: "Strict",
+    },
+  ]);
+  const response = await page.goto("/");
+  expect(response?.status()).toBe(200);
+  await expect(page.locator(".lesson-heading h1")).toContainText(
+    "PRIVATE_LESSON_SENTINEL",
+  );
+  await expect(page.locator(".warning")).toContainText("Saving is unavailable");
+  await expect(
+    page.getByRole("button", { name: "Export unsaved progress" }),
+  ).toBeVisible();
+  let writes = 0;
+  page.on("request", (req) => {
+    if (req.url().endsWith("/api/progress") && req.method() === "PUT") writes++;
+  });
+  await page
+    .locator(".suggestion-card")
+    .first()
+    .getByRole("button", { name: "Save flashcard", exact: true })
+    .click();
+  await page.waitForTimeout(750);
+  expect(writes).toBe(0);
+  const saved = await request.get("/api/progress", {
+    headers: { Cookie: `everyday_session=${token}` },
+  });
+  expect(saved.status()).toBe(200);
+  expect((await saved.json()).state.cards).toEqual([]);
+  await request.post("http://127.0.0.1:4010/__reset");
+  await page.reload();
+  await expect(page.locator(".warning")).toHaveCount(0);
+});
