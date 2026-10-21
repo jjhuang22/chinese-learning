@@ -1486,7 +1486,6 @@ main {
 .usage-notes {
   margin-top: 12px;
   padding: 24px 0 16px;
-  border-top: 1px solid var(--line);
 }
 .usage-notes details {
   margin: 10px 0;
