@@ -395,13 +395,6 @@ export default function StudyApp({
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="/" aria-label="Everyday Chinese home">
-          <span className="brand-mark">日</span>
-          <span>
-            日常<small>EVERYDAY CHINESE</small>
-          </span>
-        </a>
-
         <nav>
           {(
             [
@@ -425,7 +418,7 @@ export default function StudyApp({
         </nav>
         <div className="sidebar-bottom">
           <button className="settings-button" onClick={() => setSettings(true)}>
-            <Settings size={17} /> Settings & account
+            <Settings size={17} /> Settings
           </button>
           <div className="connection">
             <span className={!localDemo ? "dot connected" : "dot"} />
@@ -436,11 +429,7 @@ export default function StudyApp({
       <main>
         <header className="topbar">
           <span className="breadcrumb">
-            {page === "today"
-              ? "Today"
-              : page === "library"
-                ? "Library"
-                : "Review"}
+            {page === "today" ? "Today" : page === "review" ? "Review" : ""}
           </span>
           <div className="topbar-right">
             <button
@@ -708,12 +697,6 @@ export default function StudyApp({
           {page === "library" && (
             <>
               <span className="eyebrow">YOUR READING SHELF</span>
-              <div className="page-heading">
-                <h1>Every lesson, kept.</h1>
-                <p>
-                  Pick up where you left off, or return to a familiar passage.
-                </p>
-              </div>
               <div className="library-summary">
                 <BookOpen size={20} />
                 <span>{lessons.length} lessons</span>
@@ -770,17 +753,6 @@ export default function StudyApp({
           )}
           {page === "review" && (
             <>
-              <span className="eyebrow">MAKE IT STICK</span>
-              <div className="page-heading">
-                <h1>
-                  A little repetition.
-                  <br />A lasting vocabulary.
-                </h1>
-                <p>
-                  Your words and patterns, with the context that made them
-                  matter.
-                </p>
-              </div>
               {session ? (
                 <section className="review-session">
                   <div className="session-header">
@@ -882,10 +854,6 @@ export default function StudyApp({
                       <h2>
                         {due.length} <span>cards to revisit</span>
                       </h2>
-                      <p>
-                        A short session. Up to 12 cards, plus a second look at
-                        the ones you keep.
-                      </p>
                     </div>
                     <button
                       className="primary"
@@ -953,11 +921,7 @@ export default function StudyApp({
                   {!browse.length ? (
                     <div className="empty-state">
                       <Layers size={34} />
-                      <h2>
-                        {state.cards.length
-                          ? "Nothing here right now."
-                          : "Your vocabulary starts with a phrase."}
-                      </h2>
+                      {state.cards.length > 0 && <h2>Nothing here right now.</h2>}
                       <p>
                         {state.cards.length
                           ? "Try another view, or return when cards are due."
@@ -1147,7 +1111,7 @@ export default function StudyApp({
         />
       )}
       {settings && (
-        <Dialog title="Your daily practice" onClose={() => setSettings(false)}>
+        <Dialog title="Settings" onClose={() => setSettings(false)}>
           <div className="settings-section">
             <span className="eyebrow">READING ROUTINE</span>
             <h3>Import from ChatGPT</h3>
@@ -1162,14 +1126,14 @@ export default function StudyApp({
             </p>
           </div>
           <div className="settings-section">
-            <h3>Private access</h3>
+            <h3>Device access</h3>
             {localDemo ? (
               <p>This local prototype saves on this device.</p>
             ) : (
               <>
                 <p>
-                  This device stays unlocked for 30 days. Your lessons and cards
-                  sync privately to Supabase.
+                  Your passcode keeps this app private. This device stays unlocked
+                  for 30 days. Lock it now to require the passcode again.
                 </p>
                 <button className="secondary" onClick={lockApp}>
                   <LogOut size={16} />
