@@ -1,7 +1,8 @@
+import { supabaseProjectUrl } from "./supabase-config";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 export async function authClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = supabaseProjectUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return null;
   const store = await cookies();

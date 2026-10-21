@@ -19,6 +19,8 @@ Under Settings → Environment Variables, the application now requires only:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Project Settings → API Keys → publishable key, or legacy anon key | Config, intentionally browser-safe |
 | `ALLOWED_EMAIL`                 | Your account's exact email address                                         | Config                             |
 
+The URL must be the project base URL only: no /rest/v1/ or /auth/v1/ suffix. The SDK appends those paths itself. The app also normalizes these common copied API endpoints as a safeguard.
+
 Apply them to Production, then deploy the new commit. If testing a Preview deployment, those variables must also be configured for Preview and its callback URL must be explicitly allowed in Supabase. A fresh deployment is required after changing the public variables because they are included at build time.
 
 No `CHINESE_AI_API_KEY`, `CHINESE_AI_MODEL`, or `CRON_SECRET` is used. There is no Vercel cron configuration, and this app does not require Pro scheduling. The web app no longer uses `SUPABASE_SERVICE_ROLE_KEY` or `LEARNER_USER_ID`; those are optional local-only inputs for the one-time original-lesson importer described below. They can be removed from Vercel.

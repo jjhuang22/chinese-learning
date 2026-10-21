@@ -1,11 +1,9 @@
+import { supabaseProjectUrl } from "./supabase-config";
 import { createBrowserClient } from "@supabase/ssr";
+const projectUrl = supabaseProjectUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
 export const cloudEnabled = Boolean(
-  process.env.NEXT_PUBLIC_SUPABASE_URL &&
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  projectUrl && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 );
 export const supabase = cloudEnabled
-  ? createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    )
+  ? createBrowserClient(projectUrl!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   : null;
