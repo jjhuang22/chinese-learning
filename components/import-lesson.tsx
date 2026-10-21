@@ -122,6 +122,7 @@ export default function ImportLesson({
           <textarea
             id="lesson-json"
             className="import-input"
+            rows={10}
             spellCheck={false}
             value={raw}
             onChange={(e) => {

@@ -300,14 +300,14 @@ test("another device's save blocks stale UI edits and keeps them available to ex
       })
     ).status(),
   ).toBe(200);
-  await page.getByRole("button", { name: "Too hard", exact: true }).click();
+  await page.getByRole("button", { name: "Mark as read", exact: true }).click();
   await expect(page.locator(".warning")).toContainText(
     "Progress changed on another device",
   );
   await expect(page.getByRole("button", { name: "Retry sync" })).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Too hard", exact: true }),
-  ).toHaveClass("selected");
+    page.getByRole("button", { name: "Lesson read", exact: true }),
+  ).toBeVisible();
   const result = await request.get("/api/progress", {
     headers: { Cookie: `everyday_session=${token}` },
   });
@@ -393,6 +393,99 @@ for (const viewport of [
     });
   });
 }
+
+test("keep reviewing retains a failed save, retries it, and persists both session reviews", async ({
+  request,
+  page,
+}) => {
+  const token = await unlock(request);
+  await page.context().addCookies([
+    {
+      name: "everyday_session",
+      value: token,
+      url: origin,
+      secure: false,
+      httpOnly: true,
+      sameSite: "Strict",
+    },
+  ]);
+  const headers = { Cookie: `everyday_session=${token}` };
+  await page.goto("/");
+  await page
+    .locator(".suggestion-card")
+    .first()
+    .getByRole("button", { name: "Save flashcard", exact: true })
+    .click();
+  await expect
+    .poll(
+      async () =>
+        (await (await request.get("/api/progress", { headers })).json()).state
+          .cards.length,
+    )
+    .toBe(1);
+  let failNext = true;
+  const saveError =
+    "Could not save your progress. Check your connection and retry.";
+  await page.route("**/api/progress", async (route) => {
+    if (route.request().method() === "PUT" && failNext) {
+      failNext = false;
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: saveError }),
+      });
+    } else await route.continue();
+  });
+  await page
+    .locator(".sidebar nav")
+    .getByRole("button", { name: /^Review/ })
+    .click();
+  await page.getByRole("button", { name: "Start review", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Reveal meaning", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Keep reviewing", exact: true })
+    .click();
+  await expect(page.locator(".warning")).toContainText(saveError);
+  const failedSnapshot = await (
+    await request.get("/api/progress", { headers })
+  ).json();
+  expect(failedSnapshot.state.cards[0].reviews).toBe(0);
+  await page.getByRole("button", { name: "Retry sync", exact: true }).click();
+  await expect(page.locator(".warning")).toHaveCount(0);
+  await expect
+    .poll(
+      async () =>
+        (await (await request.get("/api/progress", { headers })).json()).state
+          .cards[0].reviews,
+    )
+    .toBe(1);
+  await page
+    .getByRole("button", { name: "Reveal meaning", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Keep reviewing", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "A little more familiar." }),
+  ).toBeVisible();
+  await expect
+    .poll(
+      async () =>
+        (await (await request.get("/api/progress", { headers })).json()).state
+          .cards[0].reviews,
+    )
+    .toBe(2);
+  await page.reload();
+  await page
+    .locator(".sidebar nav")
+    .getByRole("button", { name: /^Review/ })
+    .click();
+  await page.getByRole("button", { name: "Browse all", exact: true }).click();
+  await expect(page.locator(".deck-list article")).toHaveCount(1);
+  await expect(page.locator(".warning")).toHaveCount(0);
+});
 
 test("missing revision metadata keeps the authenticated library readable without unsafe saves", async ({
   request,

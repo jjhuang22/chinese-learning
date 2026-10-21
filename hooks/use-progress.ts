@@ -2,7 +2,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type StudyState } from "@/lib/model";
 import { progressSchema, revisionSchema } from "@/lib/progress-schema";
-import { ProgressConflictError, ProgressSync } from "@/lib/progress-sync";
+import {
+  ProgressConflictError,
+  ProgressSaveError,
+  ProgressSync,
+} from "@/lib/progress-sync";
 
 const STORAGE = "everyday-chinese-v1";
 
@@ -39,7 +43,11 @@ export function useProgress(
         if (response.status === 409)
           throw new ProgressConflictError(result.error);
         if (!response.ok)
-          throw new Error(result.error ?? "Could not save progress.");
+          throw new ProgressSaveError(
+            typeof result.error === "string"
+              ? result.error
+              : "Could not save progress.",
+          );
         return revisionSchema.parse(result.revision);
       },
     );
@@ -55,7 +63,9 @@ export function useProgress(
       setSyncError(
         error instanceof ProgressConflictError
           ? error.message
-          : "Cloud save failed. Keep this tab open and retry to save your changes.",
+          : error instanceof ProgressSaveError
+            ? `${error.message} Keep this tab open and retry to save your changes.`
+            : "Cloud save failed. Keep this tab open and retry to save your changes.",
       );
       return false;
     }

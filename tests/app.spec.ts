@@ -13,6 +13,13 @@ test("pinyin can be revealed individually and all at once without duplicating pa
 }) => {
   await page.goto("/");
   await expect(page.locator(".lesson-heading h1")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Show all pinyin" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".pinyin-line")).toHaveCount(
+    await page.locator(".sentence").count(),
+  );
+  await page.getByRole("button", { name: "Show all pinyin" }).click();
   await expect(page.locator(".pinyin-line")).toHaveCount(0);
   await page
     .locator(".sentence")
@@ -118,11 +125,10 @@ test("arbitrary selected phrases become editable contextual cards", async ({
   await nav(page, "Review");
   await expect(page.locator(".deck-word")).toContainText("群組");
 });
-test("review repeats kept cards once and ends; library and difficulty changes persist", async ({
+test("review repeats kept cards once and ends; archive and reading progress persist", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Too hard", exact: true }).click();
   await page.getByRole("button", { name: "Mark as read", exact: true }).click();
   const card = page.locator(".suggestion-card").first();
   await card
@@ -133,8 +139,8 @@ test("review repeats kept cards once and ends; library and difficulty changes pe
   await expect(page.locator(".library-lesson").first()).toContainText("Read");
   await page.locator(".library-lesson").first().click();
   await expect(
-    page.getByRole("button", { name: "Too hard", exact: true }),
-  ).toHaveClass("selected");
+    page.getByRole("button", { name: "Lesson read", exact: true }),
+  ).toBeVisible();
   await nav(page, "Review");
   await page.getByRole("button", { name: "Start review" }).click();
   for (let i = 0; i < 2; i++) {
@@ -231,6 +237,21 @@ test("paste, preview, save, reload, library, pinyin, and card review pipeline", 
     .getByRole("button", { name: "Save on this device", exact: true })
     .click();
   await expect(page.locator(".lesson-heading h1")).toContainText("買得划算");
+  await expect(
+    page.getByRole("region", { name: "Text", exact: true }),
+  ).toBeVisible();
+  const grammar = page.getByRole("region", { name: "Grammar", exact: true });
+  await expect(grammar).toBeVisible();
+  const note = grammar.locator("details").first();
+  await expect(note).not.toHaveAttribute("open", "");
+  await expect(note).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await note.locator("summary").click();
+  await expect(note.locator(".usage-note-text")).toBeVisible();
+  await note.locator("summary").click();
+  await expect(note.locator(".usage-note-text")).toBeHidden();
+  await expect(
+    page.getByRole("region", { name: "Suggested cards", exact: true }),
+  ).toBeVisible();
   await page.reload();
   await expect(page.locator(".lesson-heading h1")).toContainText("買得划算");
   await page
@@ -244,9 +265,9 @@ test("paste, preview, save, reload, library, pinyin, and card review pipeline", 
   await nav(page, "Archive");
   await expect(page.locator(".library-lesson")).toHaveCount(3);
   await page.locator(".library-lesson").first().click();
-  await page
-    .getByRole("button", { name: "Show all pinyin", exact: true })
-    .click();
+  await expect(
+    page.getByRole("button", { name: "Show all pinyin", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".pinyin-line")).toHaveCount(12);
   await nav(page, "Review");
   await page.getByRole("button", { name: "Start review", exact: true }).click();
@@ -291,4 +312,144 @@ test("invalid and duplicate imports are rejected without changing the lesson lib
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   await nav(page, "Archive");
   await expect(page.locator(".library-lesson")).toHaveCount(2);
+});
+
+test("card bodies open context while save and dismiss keep their own actions", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(
+    page.getByText("How did this feel?", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Too hard", exact: true }),
+  ).toHaveCount(0);
+  const card = page.locator(".suggestion-card").first();
+  const word = await card.locator("h3").innerText();
+  await card.locator(":scope > p").click();
+  await expect(page.getByRole("dialog").locator(".dialog-word")).toHaveText(
+    word,
+  );
+  await expect(
+    page.getByRole("dialog").locator(".context-sentence"),
+  ).not.toBeEmpty();
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await card.click({ position: { x: 5, y: 5 } });
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await card
+    .getByRole("button", { name: "Save flashcard", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    card.getByRole("button", { name: "Saved", exact: true }),
+  ).toBeDisabled();
+  const other = page.locator(".suggestion-card").nth(1);
+  await other.getByRole("button", { name: /^Dismiss / }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    other.getByRole("button", { name: "Dismissed", exact: true }),
+  ).toBeDisabled();
+  await nav(page, "Review");
+  await page.locator(".deck-meaning").first().click();
+  await expect(page.getByRole("dialog").locator(".dialog-word")).toHaveText(
+    word,
+  );
+  await expect(
+    page.getByRole("dialog").locator(".context-sentence"),
+  ).not.toBeEmpty();
+});
+
+test("import paste field has a moderate default height and page content has bottom space", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Import lesson", exact: true })
+    .click();
+  const field = page.getByLabel("Lesson JSON");
+  const box = await field.boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(180);
+  expect(box!.height).toBeLessThanOrEqual(260);
+  await expect(field).toHaveCSS("resize", "vertical");
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  for (const label of ["Today", "Archive", "Review"]) {
+    await nav(page, label);
+    expect(
+      await page
+        .locator(".content")
+        .evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom)),
+    ).toBeGreaterThanOrEqual(88);
+  }
+});
+
+test("review search accepts plain, accented, spaced, and numbered pinyin", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "everyday-chinese-v1",
+      JSON.stringify({
+        cards: [
+          {
+            id: "search-jiangjiu",
+            lessonId: "demo-2",
+            text: "講究",
+            pinyin: "jiǎng jiù",
+            meaning: "Be particular about quality.",
+            sentence: "他很講究品質。",
+            kind: "vocabulary",
+            status: "active",
+            dueAt: 0,
+            reviews: 0,
+            createdAt: 0,
+          },
+          {
+            id: "search-other",
+            lessonId: "demo-2",
+            text: "觀望",
+            pinyin: "guān wàng",
+            meaning: "Wait and see.",
+            sentence: "我想先觀望一下。",
+            kind: "vocabulary",
+            status: "active",
+            dueAt: 0,
+            reviews: 0,
+            createdAt: 0,
+          },
+        ],
+        dismissed: [],
+        read: [],
+        feedback: {},
+      }),
+    );
+  });
+  await page.goto("/");
+  await nav(page, "Review");
+  await expect(
+    page.getByRole("button", { name: "Practice", exact: true }),
+  ).toHaveCount(0);
+  const search = page.getByRole("textbox", { name: "Find a card" });
+  for (const query of [
+    "jiangjiu",
+    "jiang jiu",
+    "JIANGJIU",
+    "jiǎng jiù",
+    "jiang3jiu4",
+    "講究",
+    "particular",
+  ]) {
+    await search.fill(query);
+    await expect(page.locator(".deck-list article")).toHaveCount(1);
+    await expect(page.locator(".deck-word")).toContainText("講究");
+  }
+  await page.locator(".deck-list article").click({ position: { x: 5, y: 5 } });
+  await expect(
+    page.getByRole("dialog").locator(".context-sentence"),
+  ).toHaveText("他很講究品質。");
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await search.fill("not-a-match");
+  await expect(page.locator(".deck-list article")).toHaveCount(0);
+  await search.clear();
+  await expect(page.locator(".deck-list article")).toHaveCount(2);
 });

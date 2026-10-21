@@ -1,6 +1,7 @@
 import type { StudyState } from "./model";
 
 export class ProgressConflictError extends Error {}
+export class ProgressSaveError extends Error {}
 
 // Serialize snapshots in one tab. The database revision protects other tabs/devices.
 export class ProgressSync {

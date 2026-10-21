@@ -35,11 +35,15 @@ export async function PUT(request: Request) {
       expected_revision: snapshot.revision,
       progress_data: snapshot.state,
     });
-    if (error)
+    if (error) {
+      const needsSchema = ["PGRST202", "42883", "42703"].includes(error.code);
       throw new ApiError(
-        "Could not save your progress. Check the connection and apply the current Supabase schema.",
+        needsSchema
+          ? "Progress saving needs a database update. Apply the current supabase/schema.sql, then retry."
+          : "Could not save your progress. Check your connection and retry.",
         503,
       );
+    }
     if (revision === null)
       throw new ApiError(
         "Progress changed on another device. Export your progress before reloading; your changes have not been saved.",

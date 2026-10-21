@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type { StudyState, Suggestion } from "@/lib/model";
+import { matchesCardSearch } from "@/lib/card-search";
 export default function Review({
   state,
   setState,
@@ -71,11 +72,7 @@ export default function Review({
       : filter === "due"
         ? due
         : state.cards
-  ).filter((c) =>
-    `${c.text} ${c.pinyin} ${c.meaning}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
-  );
+  ).filter((c) => matchesCardSearch(c, query));
   return (
     <>
       {session ? (
@@ -240,23 +237,19 @@ export default function Review({
           ) : (
             <div className="deck-list">
               {browse.map((c) => (
-                <article key={c.id}>
+                <article
+                  key={c.id}
+                  onClick={(event) => {
+                    if (!(event.target as HTMLElement).closest("button"))
+                      setModal(c);
+                  }}
+                >
                   <button className="deck-word" onClick={() => setModal(c)}>
                     <span lang="zh-Hant">{c.text}</span>
                     <small>{c.pinyin}</small>
                   </button>
                   <span className="deck-meaning">{c.meaning}</span>
                   <div className="deck-actions">
-                    <button
-                      className="text-button"
-                      onClick={() => {
-                        setSession([c.id]);
-                        setCursor(0);
-                        setFlipped(false);
-                      }}
-                    >
-                      Practice
-                    </button>
                     {c.status === "archived" ? (
                       <button
                         className="text-button"
