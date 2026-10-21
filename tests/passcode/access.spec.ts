@@ -347,7 +347,7 @@ for (const viewport of [
       0,
     );
     await expect(page.getByText("Private cloud sync")).toHaveCount(0);
-    await expect(page.locator(".brand-mark")).toHaveText("日");
+    await expect(page.locator(".brand-mark")).toHaveText("中");
     const nav = page.locator(
       viewport.width < 760 ? ".mobile-nav" : ".sidebar nav",
     );

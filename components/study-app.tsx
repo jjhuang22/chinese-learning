@@ -223,7 +223,7 @@ export default function StudyApp({
           onClick={() => navigate("today")}
         >
           <span className="brand-mark" lang="zh-Hant">
-            日
+            中
           </span>
         </button>
         <nav>

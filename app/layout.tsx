@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description:
     "A little reading. A little repetition. Chinese that stays with you.",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "日常" },
-  icons: { icon: "/icon.svg", apple: "/apple-icon.png" },
+  icons: { icon: "/icon.svg?v=zhong", apple: "/apple-icon.png?v=zhong" },
 };
 export const viewport: Viewport = {
   width: "device-width",
