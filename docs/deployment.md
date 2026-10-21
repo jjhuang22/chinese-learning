@@ -1,75 +1,63 @@
-# Current setup: private passcode + manual lesson imports
+# Deploy the private app
 
-This replaces the earlier email-login instructions. The app uses one private passcode, a server-verified session cookie, and server-only Supabase access. No email delivery, SMTP, AI API billing, or Vercel cron is required.
+The app serves one existing Supabase learner account through Next.js on Vercel. Keep that user's UUID: lessons and progress reference it through `auth.users`.
 
-Your site: https://chinese-learning-ruddy.vercel.app
-Your database: https://pvyqbkvdqllcevmohdyu.supabase.co
+Current owner deployment: [app](https://chinese-learning-ruddy.vercel.app) · [Supabase project](https://pvyqbkvdqllcevmohdyu.supabase.co). For another deployment, use your own project URL and existing learner UUID.
 
-## 1. Vercel variables
+## Configure
 
-In your Vercel project's Settings → Environment Variables, configure these for **Production**:
+Set these in Vercel's Production environment, or in an untracked `.env.local` for protected local use. Start from [`.env.example`](../.env.example).
 
-| Variable                    | Value / source                                                                         | Type          |
-| --------------------------- | -------------------------------------------------------------------------------------- | ------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`  | `https://pvyqbkvdqllcevmohdyu.supabase.co` (base URL only)                             | Config        |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Project Settings → API Keys → legacy **service_role**, or a server secret key | **Sensitive** |
-| `LEARNER_USER_ID`           | Supabase Authentication → Users → your existing account → User UID                     | Config        |
-| `APP_PASSCODE`              | A private passcode you choose, 8–128 characters                                        | **Sensitive** |
+| Variable                    | Value                                                          |
+| --------------------------- | -------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`  | Supabase project base URL, without `/rest/v1` or `/auth/v1`    |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server service-role key or Supabase secret key; mark Sensitive |
+| `LEARNER_USER_ID`           | Existing user's UID from Supabase Authentication → Users       |
+| `APP_PASSCODE`              | Private passcode, 8–128 characters; mark Sensitive             |
 
-Use your **existing** learner UUID so all lessons and cards stay attached to the same account. Do not delete/recreate the account. The Supabase account is now just the private data owner; you do not log in through Supabase email.
+`SUPABASE_URL` can replace `NEXT_PUBLIC_SUPABASE_URL`; use one authoritative value. Never prefix the server key or passcode with `NEXT_PUBLIC_`, or put secrets in Git, URLs, or chat. The app does not need an anon key, SMTP, AI key, or cron configuration.
 
-Never prefix the passcode or service-role key with NEXT_PUBLIC_. Never put either value in chat, Git, or a URL. Enter them securely in Vercel. The browser receives neither value. The old NEXT_PUBLIC_SUPABASE_ANON_KEY and ALLOWED_EMAIL are no longer used by the app. AI and cron variables are also unused.
+## Apply the schema before deploying
 
-A server-only SUPABASE_URL can be used instead of NEXT_PUBLIC_SUPABASE_URL if preferred; keep only one authoritative value. Known /rest/v1/ and /auth/v1/ suffixes are normalized, but the base URL above is the intended setting.
+Run the entire [schema.sql](../supabase/schema.sql) in Supabase SQL Editor. It is safe to re-run and preserves existing lessons and progress.
 
-## 2. Supabase schema
+The schema removes legacy authenticated-browser permissions, retains server-only access, adds a progress revision column and `save_progress` function, and installs the durable unlock limiter. Deploy the new application only after applying it. Previously open app versions must reload because saves now require a revision.
 
-Run the entire current `supabase/schema.sql` in Supabase SQL Editor. Re-running is safe and preserves existing lessons/cards. This version adds a private `passcode_attempts` table and server-only `register_unlock_attempt` function.
+Use the repository root as Vercel's Root Directory; [vercel.json](../vercel.json) selects Next.js and `.next`. Deploy the reviewed commit with the four variables configured.
 
-The limiter persists across serverless instances: at most five attempts per client and 100 attempts globally per 15-minute window. It stores keyed hashes, not plain IP addresses. It fails closed if the database/function is unavailable. No passcode is stored in Supabase. Public and authenticated browser roles cannot call the limiter or read its table.
+## Verify
 
-Existing row-level policies remain enabled. All app data now passes through server routes that require a signed session and explicitly scope queries to LEARNER_USER_ID. The service-role key stays on the server; the app never accepts a learner ID from the browser. Legacy browser sessions cannot bypass the new app gate.
+1. In a private window, confirm `/` redirects to the unlock page and `/api/progress` returns 401.
+2. Unlock with your passcode. Confirm the expected library loads.
+3. Import [example-lesson.json](../public/example-lesson.json), using a valid unused date. Reload and verify the lesson persists.
+4. Save a card, mark a lesson read, and verify both after reload. Try a second device.
+5. Open two tabs, save in one, then edit the other. The stale tab should report a conflict without replacing the first tab's work.
+6. Rotate the passcode in Vercel and redeploy when you need to invalidate access on all devices.
 
-## 3. Deploy and unlock
+Automated tests use synthetic accounts. These checks verify your actual project configuration; native iPhone Safari selection needs a physical device.
 
-Deploy the latest `main` commit from `jjhuang22/chinese-learning`. The repository's vercel.json selects Next.js and .next output; Root Directory should remain the repository root (blank).
+## Sessions and saves
 
-Visit https://chinese-learning-ruddy.vercel.app, enter APP_PASSCODE, and click **Unlock**. No email is sent. The cookie lasts 30 days and uses HttpOnly, Secure on Vercel/HTTPS, and SameSite=Strict. Changing APP_PASSCODE, the service key, or LEARNER_USER_ID invalidates all existing app sessions after redeploying.
+Sessions last 30 days. The cookie is HttpOnly, SameSite=Strict, and Secure on Vercel/HTTPS. Its HMAC signing key derives from the service key, passcode, and learner UUID. Changing any of those values invalidates app sessions after redeployment. The Settings panel has been removed; rotate the passcode to invalidate all devices. The server still exposes `/api/lock` to clear the current device cookie.
 
-The Settings panel has been removed. Rotate the passcode in Vercel and redeploy to invalidate existing sessions on every device. Sessions do not depend on Supabase Auth email quotas. A locked request cannot fetch the library, import lessons, or load/save progress.
+All learning-data queries run on the server and scope to `LEARNER_USER_ID`. Supabase browser roles cannot access lessons or progress after the current schema is applied. The unlock limiter permits five attempts per client and 100 globally per 15-minute window, stores keyed client hashes, and fails closed if unavailable.
 
-If the unlock page reports incomplete setup, check all four variables and redeploy. If it says to run the schema, re-run the current SQL file. Repeated incorrect attempts will be limited for up to 15 minutes.
+Progress stays in memory until saved; it is not mirrored into browser storage in protected mode. Keep the tab open after a save failure and retry. For a conflict, use **Export unsaved progress** in the conflict warning before reloading. The conflict export contains progress and cards only, with no restore UI. Keep a separate Supabase backup for the full library. Previously authorized devices may retain content they have already loaded.
 
-## 4. Import a lesson
+## Troubleshooting
 
-1. Unlock the app.
-2. Click **Import lesson**.
-3. Paste the JSON from ChatGPT, preview it, then **Save to archive**.
-4. Reload to verify persistence. Save a suggested card, open Review, and try another device with the same passcode.
+| Symptom                          | Check                                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Incomplete setup                 | All four variables, valid UUID, passcode length, server key, then redeploy                     |
+| Unlocking unavailable            | Apply the entire current SQL schema and verify the database connection                         |
+| Too many attempts                | Wait up to 15 minutes; successful unlocks also count toward the limits                         |
+| Library fails to load            | Database availability, schema, learner UUID, and any manually imported lesson data             |
+| Save fails after an upgrade      | Apply the revision column/function, then reload old app tabs after preserving unsaved progress |
+| Progress conflict                | Export unsaved progress, reload to see the latest saved state, and reapply needed changes      |
+| Local development skips the gate | `npm run dev` is always a demo outside Vercel; build, then use `LOCAL_DEMO=0 npm run start`    |
 
-For a complete neutral test, copy `public/example-lesson.json`. It uses 2026-10-22; duplicate dates are rejected without replacing existing lessons. Change to a valid unused date if needed.
+## Administrative imports
 
-For a direct database test before deployment, open `supabase/example-lesson.sql`, replace YOUR_SUPABASE_USER_UUID with your existing learner UUID, paste the full SQL into SQL Editor, and run it. Plain ChatGPT JSON belongs in the app importer, not SQL Editor. Administrative SQL testing does not establish that the public app gate works.
+For normal imports, use the [JSON importer](importing.md). To import ignored originals from `.private/original-lessons.json`, configure `.env.local` and run `npm run import:lessons`. The script validates stored lesson structure and learner ownership, preserves existing dates, and reports newly inserted lessons.
 
-Copy `public/automation-instructions.txt` into your existing ChatGPT automation. It can keep generating at 8 AM America/New_York. The web app does not access your ChatGPT subscription or run that schedule. The format is documented in docs/importing.md. Cards require your approval; selected custom phrases get draft dictionary pinyin and a manually entered meaning. Difficulty rating controls have been removed.
-
-## Privacy and operation
-
-Anyone can visit the unlock page. Private content is fetched only after server verification. Signed tokens cannot be edited to extend expiry or select a different learner. The cookie signing key is derived from the server service key, passcode, and learner UUID, using a purpose-specific HMAC; no extra signing-secret variable is needed. Keep the passcode private and use at least eight characters.
-
-Progress is saved to Supabase, not mirrored into browser storage. Keep a tab open if saving fails. The current sync is last-write-wins, so avoid editing the same deck on multiple devices simultaneously. Previously loaded content can be read by an unlocked device; the app checks the session when a tab regains focus. Locking does not erase copies a previously authorized person might have made.
-
-Personal originals remain ignored under .private/original-lessons.json. The optional one-time script `node --env-file=.env.local scripts/import-lessons.mjs` can import them using your local server key and learner UUID. Do not commit learning exports, filled-in environment files, or private lesson data.
-
-## Local development and tests
-
-`npm run dev` provides an explicitly local, browser-only prototype without credentials outside Vercel. `LOCAL_DEMO=1 npm run start` does the same after building. Vercel always enforces the gate even if LOCAL_DEMO was set. Do not expose local demo mode as a public service.
-
-For a real local gate, use LOCAL_DEMO=0 and the four variables privately in .env.local. No production secrets are required for automated tests:
-
-- `npm test`: desktop/mobile reading, imports, and review in a local demo.
-- `npm run test:database`: actual SQL, limiter permissions/reset, duplicate preservation, URL handling, session forgery/expiry/rotation.
-- `npm run test:privacy`: deployment-mode access stays locked without valid setup/session.
-- `npm run test:passcode`: the real protected Next.js routes against a local PostgreSQL test service, including cookie properties, wrong-passcode throttling, data ownership, import, progress, reload, and locking.
-
-Tests do not know your real passcode. Live unlocking must be checked after the variables/schema are supplied. Real iPhone Safari interactions still need a physical device test.
+For a direct SQL example, replace the UUID placeholder in [example-lesson.sql](../supabase/example-lesson.sql) before running it in SQL Editor. Administrative SQL bypasses the app validator; validate content before inserting it. Never commit personal lessons or filled-in environment files.

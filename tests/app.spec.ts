@@ -382,3 +382,74 @@ test("import paste field has a moderate default height and page content has bott
     ).toBeGreaterThanOrEqual(88);
   }
 });
+
+test("review search accepts plain, accented, spaced, and numbered pinyin", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "everyday-chinese-v1",
+      JSON.stringify({
+        cards: [
+          {
+            id: "search-jiangjiu",
+            lessonId: "demo-2",
+            text: "講究",
+            pinyin: "jiǎng jiù",
+            meaning: "Be particular about quality.",
+            sentence: "他很講究品質。",
+            kind: "vocabulary",
+            status: "active",
+            dueAt: 0,
+            reviews: 0,
+            createdAt: 0,
+          },
+          {
+            id: "search-other",
+            lessonId: "demo-2",
+            text: "觀望",
+            pinyin: "guān wàng",
+            meaning: "Wait and see.",
+            sentence: "我想先觀望一下。",
+            kind: "vocabulary",
+            status: "active",
+            dueAt: 0,
+            reviews: 0,
+            createdAt: 0,
+          },
+        ],
+        dismissed: [],
+        read: [],
+        feedback: {},
+      }),
+    );
+  });
+  await page.goto("/");
+  await nav(page, "Review");
+  await expect(
+    page.getByRole("button", { name: "Practice", exact: true }),
+  ).toHaveCount(0);
+  const search = page.getByRole("textbox", { name: "Find a card" });
+  for (const query of [
+    "jiangjiu",
+    "jiang jiu",
+    "JIANGJIU",
+    "jiǎng jiù",
+    "jiang3jiu4",
+    "講究",
+    "particular",
+  ]) {
+    await search.fill(query);
+    await expect(page.locator(".deck-list article")).toHaveCount(1);
+    await expect(page.locator(".deck-word")).toContainText("講究");
+  }
+  await page.locator(".deck-list article").click({ position: { x: 5, y: 5 } });
+  await expect(
+    page.getByRole("dialog").locator(".context-sentence"),
+  ).toHaveText("他很講究品質。");
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await search.fill("not-a-match");
+  await expect(page.locator(".deck-list article")).toHaveCount(0);
+  await search.clear();
+  await expect(page.locator(".deck-list article")).toHaveCount(2);
+});
