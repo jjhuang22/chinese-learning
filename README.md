@@ -40,8 +40,8 @@ Stop a manually started server on port 3000 before npm test. Browser tests use d
 
 ## Reading and review
 
-Sentences flow together in paragraphs. Tap a sentence for pinyin or use Show all pinyin. Tap a highlighted expression for contextual meaning and Save flashcard. Select any other phrase to create a card with draft dictionary pinyin, a manually entered meaning, and its source sentence.
+Sentences flow together in paragraphs. Pinyin is shown by default. Turn off Show all pinyin to reveal individual sentences by tapping. Tap a highlighted expression for contextual meaning and Save flashcard. Select any other phrase to create a card with draft dictionary pinyin, a manually entered meaning, and its source sentence.
 
 Highlights and suggested cards share one approval state. Review shows characters/pinyin first and meaning/context on reveal. Keep reviewing requeues a card once in the session; Understand already archives it, with an optional refresher after 30 days. Review also supports browsing and restoring cards. Scheduling is a simple initial version rather than full FSRS. Cloud saves currently use last-write-wins.
 
-The app includes Home Screen metadata and icons. Offline reading and push notifications are not implemented. Vocabulary and difficulty feedback do not sync back into the separate ChatGPT automation automatically.
+The app includes Home Screen metadata and icons. Offline reading and push notifications are not implemented. Saved vocabulary does not sync back into the separate ChatGPT automation automatically.

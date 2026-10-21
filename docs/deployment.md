@@ -51,7 +51,7 @@ For a complete neutral test, copy `public/example-lesson.json`. It uses 2026-10-
 
 For a direct database test before deployment, open `supabase/example-lesson.sql`, replace YOUR_SUPABASE_USER_UUID with your existing learner UUID, paste the full SQL into SQL Editor, and run it. Plain ChatGPT JSON belongs in the app importer, not SQL Editor. Administrative SQL testing does not establish that the public app gate works.
 
-Copy `public/automation-instructions.txt` into your existing ChatGPT automation. It can keep generating at 8 AM America/New_York. The web app does not access your ChatGPT subscription or run that schedule. The format is documented in docs/importing.md. Cards require your approval; selected custom phrases get draft dictionary pinyin and a manually entered meaning. Difficulty feedback does not sync back to ChatGPT automatically.
+Copy `public/automation-instructions.txt` into your existing ChatGPT automation. It can keep generating at 8 AM America/New_York. The web app does not access your ChatGPT subscription or run that schedule. The format is documented in docs/importing.md. Cards require your approval; selected custom phrases get draft dictionary pinyin and a manually entered meaning. Difficulty rating controls have been removed.
 
 ## Privacy and operation
 

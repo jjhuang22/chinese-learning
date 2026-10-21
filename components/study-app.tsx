@@ -14,7 +14,6 @@ import {
   RotateCcw,
   Archive,
   Search,
-  Type,
   CheckCheck,
 } from "lucide-react";
 import Dialog from "./dialog";
@@ -85,7 +84,7 @@ export default function StudyApp({
       setStorageError("Local lessons could not be loaded.");
     }
   }, [localDemo]);
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
   const [revealed, setRevealed] = useState<string[]>([]);
   const [modal, setModal] = useState<Suggestion | null>(null);
   const [selection, setSelection] = useState<Pick | null>(null);
@@ -206,7 +205,7 @@ export default function StudyApp({
     return () => clearTimeout(t);
   }, [notice]);
   useEffect(() => {
-    setShowAll(false);
+    setShowAll(true);
     setRevealed([]);
     setSelection(null);
   }, [lessonId]);
@@ -462,106 +461,128 @@ export default function StudyApp({
                 <div className="lesson-heading">
                   <h1 lang="zh-Hant">{lesson.title}</h1>
                 </div>
-                <div className="reader-toolbar">
-                  <div>
-                    <span className="tiny-dot" />
-                    Tap text for pinyin, highlights for meaning. Select a phrase
-                    to make a card.
+                <section aria-labelledby="text-heading">
+                  <h2 id="text-heading" className="study-section-title">
+                    Text
+                  </h2>
+                  <div className="reader-toolbar">
+                    <div>
+                      <span className="tiny-dot" />
+                      Tap a highlighted phrase for meaning and context. Select a
+                      phrase to make a card.
+                    </div>
+                    <button
+                      className={`toggle ${showAll ? "on" : ""}`}
+                      onClick={() => setShowAll((v) => !v)}
+                      aria-pressed={showAll}
+                    >
+                      <span>Show all pinyin</span>
+                      <span className="switch" />
+                    </button>
                   </div>
-                  <button
-                    className={`toggle ${showAll ? "on" : ""}`}
-                    onClick={() => setShowAll((v) => !v)}
-                    aria-pressed={showAll}
+                  <div
+                    className={`reader ${showAll ? "pinyin-visible" : ""}`}
+                    onMouseUp={captureSelection}
+                    onTouchEnd={captureSelection}
                   >
-                    <Type size={16} />
-                    <span>Show all pinyin</span>
-                    <span className="switch" />
-                  </button>
-                </div>
-                <div
-                  className="reader"
-                  onMouseUp={captureSelection}
-                  onTouchEnd={captureSelection}
-                >
-                  {lesson.passages.map((passage, p) => (
-                    <section className="passage" key={p}>
-                      <div className="passage-heading">
-                        <span className="passage-number">0{p + 1}</span>
-                        <div>
-                          <h2 lang="zh-Hant">{passage.title}</h2>
+                    {lesson.passages.map((passage, p) => (
+                      <section className="passage" key={p}>
+                        <div className="passage-heading">
+                          <span className="passage-number">0{p + 1}</span>
+                          <div>
+                            <h2 lang="zh-Hant">{passage.title}</h2>
+                          </div>
                         </div>
-                      </div>
-                      <div className="chinese-text" lang="zh-Hant">
-                        {paragraphGroups(passage).map(
-                          (group, paragraphIndex) => (
-                            <p
-                              className="reading-paragraph"
-                              key={paragraphIndex}
-                            >
-                              {group.map(({ sentence: s, index: i }) => {
-                                const key = `${p}-${i}`;
-                                const visible =
-                                  showAll || revealed.includes(key);
-                                return (
-                                  <span
-                                    className="sentence-block"
-                                    key={key}
-                                    data-sentence={s.text}
-                                  >
+                        <div className="chinese-text" lang="zh-Hant">
+                          {paragraphGroups(passage).map(
+                            (group, paragraphIndex) => (
+                              <p
+                                className="reading-paragraph"
+                                key={paragraphIndex}
+                              >
+                                {group.map(({ sentence: s, index: i }) => {
+                                  const key = `${p}-${i}`;
+                                  const visible =
+                                    showAll || revealed.includes(key);
+                                  return (
                                     <span
-                                      className="sentence"
-                                      role="button"
-                                      tabIndex={0}
-                                      aria-label={`Pronunciation: ${s.text}`}
-                                      aria-expanded={visible}
-                                      onKeyDown={(e) => {
-                                        if (e.target !== e.currentTarget)
-                                          return;
-                                        if (
-                                          e.key === "Enter" ||
-                                          e.key === " "
-                                        ) {
-                                          e.preventDefault();
+                                      className="sentence-block"
+                                      key={key}
+                                      data-sentence={s.text}
+                                    >
+                                      <span
+                                        className="sentence"
+                                        role={showAll ? undefined : "button"}
+                                        tabIndex={showAll ? undefined : 0}
+                                        aria-label={
+                                          showAll
+                                            ? undefined
+                                            : `Pronunciation: ${s.text}`
+                                        }
+                                        aria-expanded={
+                                          showAll ? undefined : visible
+                                        }
+                                        onKeyDown={(e) => {
+                                          if (
+                                            showAll ||
+                                            e.target !== e.currentTarget
+                                          )
+                                            return;
+                                          if (
+                                            e.key === "Enter" ||
+                                            e.key === " "
+                                          ) {
+                                            e.preventDefault();
+                                            setRevealed((prev) =>
+                                              prev.includes(key)
+                                                ? prev.filter((k) => k !== key)
+                                                : [...prev, key],
+                                            );
+                                          }
+                                        }}
+                                        onClick={() => {
+                                          if (
+                                            showAll ||
+                                            window.getSelection()?.toString()
+                                          )
+                                            return;
+                                          setSelection(null);
                                           setRevealed((prev) =>
                                             prev.includes(key)
                                               ? prev.filter((k) => k !== key)
                                               : [...prev, key],
                                           );
-                                        }
-                                      }}
-                                      onClick={() => {
-                                        if (window.getSelection()?.toString())
-                                          return;
-                                        setSelection(null);
-                                        setRevealed((prev) =>
-                                          prev.includes(key)
-                                            ? prev.filter((k) => k !== key)
-                                            : [...prev, key],
-                                        );
-                                      }}
-                                    >
-                                      {textParts(s.text)}
-                                    </span>
-                                    {visible && (
-                                      <span
-                                        lang="zh-Latn"
-                                        className="pinyin-line"
+                                        }}
                                       >
-                                        {s.pinyin}
+                                        {textParts(s.text)}
                                       </span>
-                                    )}
-                                  </span>
-                                );
-                              })}
-                            </p>
-                          ),
-                        )}
-                      </div>
-                    </section>
-                  ))}
-                </div>
+                                      {visible && (
+                                        <span
+                                          lang="zh-Latn"
+                                          className="pinyin-line"
+                                        >
+                                          {s.pinyin}
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                              </p>
+                            ),
+                          )}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                </section>
                 {(lesson.notes ?? []).length > 0 && (
-                  <section className="usage-notes">
+                  <section
+                    className="usage-notes"
+                    aria-labelledby="grammar-heading"
+                  >
+                    <h2 id="grammar-heading" className="study-section-title">
+                      Grammar
+                    </h2>
                     {lesson.notes.map((note, i) => (
                       <details key={i}>
                         <summary lang="zh-Hant">
@@ -597,30 +618,14 @@ export default function StudyApp({
                       ? "Lesson read"
                       : "Mark as read"}
                   </button>
-                  <div className="difficulty">
-                    <span>How did this feel?</span>
-                    {["Too easy", "About right", "Too hard"].map((f) => (
-                      <button
-                        className={
-                          state.feedback[lesson.id] === f ? "selected" : ""
-                        }
-                        key={f}
-                        onClick={() =>
-                          setState((prev) => ({
-                            ...prev,
-                            feedback: { ...prev.feedback, [lesson.id]: f },
-                          }))
-                        }
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
                 </div>
-                <section className="suggestions">
+                <section
+                  className="suggestions"
+                  aria-labelledby="suggestions-heading"
+                >
                   <div className="section-title">
                     <div>
-                      <h2>Suggested cards</h2>
+                      <h2 id="suggestions-heading">Suggested cards</h2>
                     </div>
                     <button
                       className="secondary"
@@ -658,6 +663,12 @@ export default function StudyApp({
                         <article
                           key={s.id}
                           className={`suggestion-card ${dismissed ? "dismissed" : ""}`}
+                          onClick={(event) => {
+                            if (
+                              !(event.target as HTMLElement).closest("button")
+                            )
+                              setModal(s);
+                          }}
                         >
                           <div className="suggestion-top">
                             <span className="kind">
@@ -960,7 +971,15 @@ export default function StudyApp({
                   ) : (
                     <div className="deck-list">
                       {browse.map((c) => (
-                        <article key={c.id}>
+                        <article
+                          key={c.id}
+                          onClick={(event) => {
+                            if (
+                              !(event.target as HTMLElement).closest("button")
+                            )
+                              setModal(c);
+                          }}
+                        >
                           <button
                             className="deck-word"
                             onClick={() => setModal(c)}
