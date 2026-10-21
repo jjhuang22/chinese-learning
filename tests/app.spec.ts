@@ -152,7 +152,7 @@ test("cloud endpoints reject unauthenticated requests and manifest is available"
   const response = await request.post("/api/import", {
     data: { schemaVersion: 1 },
   });
-  expect([401, 503]).toContain(response.status());
+  expect(response.status()).toBe(401);
   expect((await response.json()).error).toBeTruthy();
   for (const route of ["/api/generate", "/api/lookup", "/api/cron"])
     expect((await request.get(route)).status()).toBe(404);

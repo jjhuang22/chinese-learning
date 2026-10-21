@@ -1,26 +1,9 @@
-import { supabaseProjectUrl } from "./lib/supabase-config";
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
-  const url = supabaseProjectUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (url && key) {
-    const client = createServerClient(url, key, {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll(values) {
-          values.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          values.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
-          );
-        },
-      },
-    });
-    await client.auth.getUser();
-  }
+export function proxy(request: NextRequest) {
+  const response = NextResponse.next({ request });
   response.headers.set("Cache-Control", "private, no-store");
   return response;
 }
-export const config = { matcher: ["/", "/sign-in", "/auth/callback"] };
+export const config = {
+  matcher: ["/", "/sign-in", "/api/:path*", "/auth/callback"],
+};

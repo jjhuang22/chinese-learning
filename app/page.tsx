@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { redirect } from "next/navigation";
 import StudyApp from "@/components/study-app";
-import { authClient } from "@/lib/auth-server";
+import { adminClient } from "@/lib/server";
+import { isUnlocked } from "@/lib/passcode";
+import { emptyState } from "@/lib/model";
 import { localDemoAllowed } from "@/lib/demo";
 import { lessonSchema, type Lesson } from "@/lib/model";
 import samples from "@/lib/sample-lessons.json";
@@ -27,24 +29,32 @@ export default async function Page() {
     }
     return <StudyApp initialLessons={initialLessons} localDemo />;
   }
-  const db = await authClient();
-  if (!db || !process.env.ALLOWED_EMAIL) redirect("/sign-in?error=setup");
-  const {
-    data: { user },
-    error,
-  } = await db.auth.getUser();
-  if (error || !user) redirect("/sign-in");
-  if (user.email?.toLowerCase() !== process.env.ALLOWED_EMAIL.toLowerCase())
-    redirect("/sign-in?error=forbidden");
-  const { data: rows, error: historyError } = await db
-    .from("lessons")
-    .select("content")
-    .eq("user_id", user.id)
-    .order("lesson_date");
-  if (historyError)
+  if (!(await isUnlocked())) redirect("/sign-in");
+  const { db, learnerId } = adminClient();
+  const [history, progress] = await Promise.all([
+    db
+      .from("lessons")
+      .select("content")
+      .eq("user_id", learnerId)
+      .order("lesson_date"),
+    db
+      .from("learner_state")
+      .select("data")
+      .eq("user_id", learnerId)
+      .maybeSingle(),
+  ]);
+  if (history.error || progress.error)
     throw new Error(
-      "Your lesson library could not be loaded. Check the Supabase schema and permissions.",
+      "Your private library could not be loaded. Check Supabase setup.",
     );
-  const initialLessons = (rows ?? []).map((row) => row.content as Lesson);
-  return <StudyApp initialLessons={initialLessons} localDemo={false} />;
+  const initialLessons = (history.data ?? []).map(
+    (row) => row.content as Lesson,
+  );
+  return (
+    <StudyApp
+      initialLessons={initialLessons}
+      initialState={progress.data?.data ?? emptyState}
+      localDemo={false}
+    />
+  );
 }

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
-  testIgnore: ["**/privacy/**", "**/database/**"],
+  testIgnore: ["**/privacy/**", "**/database/**", "**/passcode/**"],
   fullyParallel: true,
   reporter: "list",
   use: {

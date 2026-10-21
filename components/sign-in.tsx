@@ -1,66 +1,40 @@
 "use client";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useState, useEffect } from "react";
+import { LockKeyhole } from "lucide-react";
 export default function SignIn() {
-  const [email, setEmail] = useState("");
+  useEffect(() => {
+    let live = true;
+    void fetch("/api/session", { cache: "no-store" })
+      .then((response) => {
+        if (live && response.status === 204) window.location.replace("/");
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  const [passcode, setPasscode] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [errorDetail, setErrorDetail] = useState("");
-  useEffect(() => {
-    const error = new URLSearchParams(window.location.search).get("error");
-    if (error === "setup") setMessage("Account setup is not complete yet.");
-    if (error === "forbidden") setMessage("This account does not have access.");
-    if (error === "browser")
-      setMessage(
-        "This link belongs to a different browser or login request. Request a new link here, then open it in this same browser. Avoid switching between an email app’s browser, Safari, Chrome, or private tabs.",
-      );
-    if (error === "link")
-      setMessage(
-        "This link has expired or could not be used. Request another link.",
-      );
-  }, []);
-  async function submit(event: React.FormEvent) {
+  async function unlock(event: React.FormEvent) {
     event.preventDefault();
-    if (!supabase || busy) return;
+    if (busy) return;
     setBusy(true);
     setMessage("");
-    setErrorDetail("");
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo: window.location.origin + "/auth/callback",
-        },
+      const response = await fetch("/api/unlock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode }),
       });
-      if (error) {
-        const hints: Record<string, string> = {
-          email_address_not_authorized:
-            "Supabase’s default email service cannot send to this address. Use an address authorized for your Supabase organization, or configure custom SMTP.",
-          over_email_send_rate_limit:
-            "Supabase’s sign-in email limit has been reached. Wait before trying again, or configure custom SMTP.",
-          over_request_rate_limit:
-            "Too many sign-in requests. Wait before trying again.",
-          signup_disabled:
-            "This email does not have an existing account in this Supabase project. Check Authentication → Users for the exact email. Public signup should stay disabled.",
-          otp_disabled:
-            "Email-link sign-in is unavailable for this account. Check the account in Supabase Authentication → Users and the Email provider settings.",
-          email_provider_disabled:
-            "Email sign-in is disabled in Supabase. Enable the Email provider in Authentication → Sign In / Providers.",
-          email_address_invalid:
-            "Supabase rejected this email address. Check the address and try again.",
-        };
-        setMessage(
-          hints[error.code ?? ""] ??
-            (error.status === 429
-              ? "Supabase’s sign-in email limit has been reached. Wait before trying again."
-              : "Supabase could not send the sign-in link. See the error details below."),
-        );
-        setErrorDetail([error.code, error.message].filter(Boolean).join(": "));
-      } else
-        setMessage(
-          "Check your email for a sign-in link. Open it in this same browser.",
-        );
+      const result = await response.json();
+      if (!response.ok) {
+        setMessage(result.error ?? "Unable to unlock. Try again.");
+        setPasscode("");
+        return;
+      }
+      setPasscode("");
+      window.location.replace("/");
     } catch {
       setMessage("Unable to connect. Please try again.");
     } finally {
@@ -71,38 +45,25 @@ export default function SignIn() {
     <main className="sign-in-page">
       <section className="sign-in-card">
         <span className="brand-mark">日</span>
-        <h1>Sign in</h1>
-        <form onSubmit={submit}>
-          <label htmlFor="email">Email address</label>
+        <h1>Unlock your lessons</h1>
+        <form onSubmit={unlock}>
+          <label htmlFor="passcode">Passcode</label>
           <input
-            id="email"
-            type="email"
-            autoComplete="email"
+            id="passcode"
+            type="password"
+            autoComplete="current-password"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            maxLength={128}
+            value={passcode}
+            onChange={(e) => setPasscode(e.target.value)}
+            autoFocus
           />
-          <button className="primary full" disabled={!supabase || busy}>
-            {busy ? "Sending…" : "Email me a sign-in link"}
+          <button className="primary full" disabled={busy || !passcode}>
+            <LockKeyhole size={17} />
+            {busy ? "Unlocking…" : "Unlock"}
           </button>
         </form>
         {message && <p role="status">{message}</p>}
-        {errorDetail && (
-          <details className="auth-error-detail">
-            <summary>Error details</summary>
-            <p>{errorDetail}</p>
-          </details>
-        )}
-        {!supabase && <p>Account setup is not complete yet.</p>}
-        <button
-          className="text-button"
-          onClick={async () => {
-            await supabase?.auth.signOut();
-            window.location.replace("/sign-in");
-          }}
-        >
-          Use another account
-        </button>
       </section>
     </main>
   );

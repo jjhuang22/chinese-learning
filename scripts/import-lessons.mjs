@@ -5,16 +5,15 @@ const {
   NEXT_PUBLIC_SUPABASE_URL: url,
   SUPABASE_SERVICE_ROLE_KEY: key,
   LEARNER_USER_ID: userId,
-  ALLOWED_EMAIL: email,
 } = process.env;
-if (!url || !key || !userId || !email)
+if (!url || !key || !userId)
   throw new Error(
-    "Set the Supabase URL, server key, LEARNER_USER_ID, and ALLOWED_EMAIL in .env.local.",
+    "Set the Supabase URL, server key, and existing LEARNER_USER_ID in .env.local.",
   );
 const client = createClient(url, key, { auth: { persistSession: false } });
 const { data, error } = await client.auth.admin.getUserById(userId);
-if (error || data.user?.email?.toLowerCase() !== email.toLowerCase())
-  throw new Error("Learner account does not match ALLOWED_EMAIL.");
+if (error || data.user?.id !== userId)
+  throw new Error("LEARNER_USER_ID does not identify an existing learner account.");
 const lessons = JSON.parse(
   await readFile(
     new URL("../.private/original-lessons.json", import.meta.url),

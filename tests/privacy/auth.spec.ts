@@ -18,7 +18,7 @@ test("deployed mode redirects before rendering lessons, even with LOCAL_DEMO ena
   }
   const login = await request.get("/sign-in");
   expect(login.status()).toBe(200);
-  expect(await login.text()).toContain("Sign in");
+  expect(await login.text()).toContain("Unlock your lessons");
 });
 test("original lessons are ignored and absent from shipped browser JavaScript", async () => {
   expect(

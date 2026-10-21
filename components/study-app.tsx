@@ -32,7 +32,6 @@ import {
   StudyState,
   Suggestion,
 } from "@/lib/model";
-import { cloudEnabled, supabase } from "@/lib/supabase";
 const STORAGE = "everyday-chinese-v1";
 type Page = "today" | "library" | "review";
 type Pick = { text: string; sentence: string; lessonId: string };
@@ -54,9 +53,11 @@ function dateLabel(date: string) {
 export default function StudyApp({
   initialLessons,
   localDemo,
+  initialState = emptyState,
 }: {
   initialLessons: Lesson[];
   localDemo: boolean;
+  initialState?: StudyState;
 }) {
   const sampleLessons = initialLessons;
   const [page, setPage] = useState<Page>("today");
@@ -64,7 +65,7 @@ export default function StudyApp({
   const [lessonId, setLessonId] = useState(
     initialLessons.at(-1)?.id ?? "empty",
   );
-  const [state, setState] = useState<StudyState>(emptyState);
+  const [state, setState] = useState<StudyState>(initialState);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     if (!localDemo) return;
@@ -95,18 +96,12 @@ export default function StudyApp({
   const [notice, setNotice] = useState("");
   const [syncError, setSyncError] = useState("");
   const [storageError, setStorageError] = useState("");
-  const [userId, setUserId] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [signedEmail, setSignedEmail] = useState("");
-  const [cloudReady, setCloudReady] = useState(false);
-
   const [filter, setFilter] = useState<"due" | "all" | "archived">("due");
   const [query, setQuery] = useState("");
   const [session, setSession] = useState<string[] | null>(null);
   const [cursor, setCursor] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const reader = useRef<HTMLDivElement>(null);
-  const reconnect = useRef<null | (() => Promise<void>)>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
   const lesson = lessons.find((l) => l.id === lessonId) ??
@@ -158,87 +153,56 @@ export default function StudyApp({
       setStorageError("Progress could not be saved in this browser.");
     }
   }, [state, loaded]);
-  useEffect(() => {
-    if (!supabase) return;
-    let live = true;
-    let revision = 0;
-    async function connect(id: string | null, emailAddress: string = "") {
-      const request = ++revision;
-      setCloudReady(false);
-      setUserId(id);
-      setSignedEmail(emailAddress);
-      if (!id) {
-        if (!localDemo) window.location.replace("/sign-in");
-        return;
+  function returnToLock() {
+    setState(emptyState);
+    setLessons([]);
+    window.location.replace("/sign-in");
+  }
+  async function persistProgress(progress: StudyState) {
+    try {
+      const response = await fetch("/api/progress", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(progress),
+      });
+      if (response.status === 401) {
+        returnToLock();
+        return false;
       }
-      const [stored, history] = await Promise.all([
-        supabase!
-          .from("learner_state")
-          .select("data")
-          .eq("user_id", id)
-          .maybeSingle(),
-        supabase!
-          .from("lessons")
-          .select("content")
-          .eq("user_id", id)
-          .order("lesson_date"),
-      ]);
-      if (!live || request !== revision) return;
-      if (stored.error || history.error) {
-        setSyncError(
-          "Cloud sync is unavailable. Keep this tab open and retry to save your changes.",
-        );
-        return;
-      }
-      if (stored.data?.data) setState(stored.data.data as StudyState);
-      if (history.data?.length) {
-        const generated = history.data.map((row) => row.content as Lesson);
-        setLessons(generated);
-        setLessonId(generated[generated.length - 1].id);
-      }
+      if (!response.ok) throw new Error();
       setSyncError("");
-      setCloudReady(true);
-    }
-    reconnect.current = async () => {
-      const { data } = await supabase!.auth.getSession();
-      await connect(data.session?.user.id ?? null, data.session?.user.email);
-    };
-    void supabase.auth
-      .getSession()
-      .then(({ data }) =>
-        connect(data.session?.user.id ?? null, data.session?.user.email),
+      return true;
+    } catch {
+      setSyncError(
+        "Cloud save failed. Keep this tab open and retry to save your changes.",
       );
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (_event === "INITIAL_SESSION" || _event === "TOKEN_REFRESHED") return;
-      setTimeout(() => void connect(s?.user.id ?? null, s?.user.email), 0);
-    });
+      return false;
+    }
+  }
+  useEffect(() => {
+    if (!loaded || localDemo) return;
+    const timer = setTimeout(() => void persistProgress(state), 500);
+    return () => clearTimeout(timer);
+  }, [state, loaded, localDemo]);
+  useEffect(() => {
+    if (localDemo) return;
+    let live = true;
+    const check = async () => {
+      try {
+        const response = await fetch("/api/session", { cache: "no-store" });
+        if (live && response.status === 401) returnToLock();
+      } catch {
+        /* Keep unsaved work while offline. */
+      }
+    };
+    window.addEventListener("focus", check);
+    window.addEventListener("pageshow", check);
     return () => {
       live = false;
-      subscription.unsubscribe();
+      window.removeEventListener("focus", check);
+      window.removeEventListener("pageshow", check);
     };
-  }, []);
-  useEffect(() => {
-    if (!loaded || !userId || !cloudReady || !supabase) return;
-    const t = setTimeout(() => {
-      void supabase!
-        .from("learner_state")
-        .upsert({
-          user_id: userId,
-          data: state,
-          updated_at: new Date().toISOString(),
-        })
-        .then(({ error }) =>
-          setSyncError(
-            error
-              ? "Cloud save failed. Keep this tab open and retry to save your changes."
-              : "",
-          ),
-        );
-    }, 500);
-    return () => clearTimeout(t);
-  }, [state, loaded, userId, cloudReady]);
+  }, [localDemo]);
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(""), 4500);
@@ -367,41 +331,19 @@ export default function StudyApp({
       );
     });
   }
-  async function signIn(e: React.FormEvent) {
-    e.preventDefault();
-    if (!supabase) return;
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: window.location.origin + "/auth/callback",
-        shouldCreateUser: false,
-      },
-    });
-    setNotice(
-      error
-        ? "Could not send sign-in link. Check your account and Supabase setup."
-        : "Check your email for a sign-in link.",
-    );
-  }
   async function retrySync() {
-    if (!supabase || !userId) return;
-    if (!cloudReady) {
-      await reconnect.current?.();
-      return;
-    }
-    const { error } = await supabase.from("learner_state").upsert({
-      user_id: userId,
-      data: stateRef.current,
-      updated_at: new Date().toISOString(),
-    });
-    if (!error) {
-      setSyncError("");
-      setCloudReady(true);
+    if (await persistProgress(stateRef.current))
       setNotice("Your progress is synced.");
-    } else
-      setNotice(
-        "Still unable to sync. Check the Supabase table and connection.",
-      );
+  }
+  async function lockApp() {
+    try {
+      const response = await fetch("/api/lock", { method: "POST" });
+      if (!response.ok) throw new Error();
+      localStorage.removeItem(STORAGE);
+      returnToLock();
+    } catch {
+      setNotice("Could not lock the app. Check your connection and try again.");
+    }
   }
   function startSession() {
     setSession(due.slice(0, 12).map((c) => c.id));
@@ -486,8 +428,8 @@ export default function StudyApp({
             <Settings size={17} /> Settings & account
           </button>
           <div className="connection">
-            <span className={userId && cloudReady ? "dot connected" : "dot"} />
-            {userId && cloudReady ? "Cloud connected" : "Saved on this device"}
+            <span className={!localDemo ? "dot connected" : "dot"} />
+            {!localDemo ? "Private cloud sync" : "Saved on this device"}
           </div>
         </div>
       </aside>
@@ -1220,53 +1162,28 @@ export default function StudyApp({
             </p>
           </div>
           <div className="settings-section">
-            <h3>{userId ? "Your account" : "Keep your learning in sync"}</h3>
-            {userId ? (
+            <h3>Private access</h3>
+            {localDemo ? (
+              <p>This local prototype saves on this device.</p>
+            ) : (
               <>
-                <p>{signedEmail}</p>
-                <button
-                  className="secondary"
-                  onClick={async () => {
-                    await supabase?.auth.signOut();
-                    setCloudReady(false);
-                    setState(emptyState);
-                    localStorage.removeItem(STORAGE);
-                    if (!localDemo) window.location.replace("/sign-in");
-                  }}
-                >
+                <p>
+                  This device stays unlocked for 30 days. Your lessons and cards
+                  sync privately to Supabase.
+                </p>
+                <button className="secondary" onClick={lockApp}>
                   <LogOut size={16} />
-                  Sign out
+                  Lock this device
                 </button>
               </>
-            ) : cloudEnabled ? (
-              <form onSubmit={signIn}>
-                <label>
-                  Email address
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                  />
-                </label>
-                <button className="primary" type="submit">
-                  Email me a sign-in link <ArrowRight size={16} />
-                </button>
-              </form>
-            ) : (
-              <p>
-                This version saves cards and reading progress in your browser.
-                Connect Supabase to sign in and sync between your phone and
-                desktop.
-              </p>
             )}
           </div>
           <div className="settings-section">
             <h3>On your iPhone</h3>
             <p>
               Open the deployed website in Safari, then Share → Add to Home
-              Screen. Your account keeps your progress together.
+              Screen. Your passcode gives this device access to the same private
+              library.
             </p>
           </div>
           <div className="settings-section">

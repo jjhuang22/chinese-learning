@@ -7,7 +7,7 @@ const other = "22222222-2222-4222-8222-222222222222";
 async function database() {
   const db = new PGlite();
   await db.exec(
-    `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values ('${owner}'),('${other}');create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;`,
+    `create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values ('${owner}'),('${other}');create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;`,
   );
   await db.exec(await readFile("supabase/schema.sql", "utf8"));
   return db;

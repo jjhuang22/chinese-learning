@@ -1,10 +1,9 @@
-import { ApiError, errorResponse, requireUser } from "@/lib/server";
+import { ApiError, errorResponse, requireUser, requireSameOrigin } from "@/lib/server";
 import { MAX_IMPORT_BYTES, parseLessonImport } from "@/lib/import-lesson";
 export async function POST(request: Request) {
   try {
-    const { user, db } = await requireUser();
-    if (request.headers.get("origin") !== new URL(request.url).origin)
-      throw new ApiError("Import from the signed-in app.", 403);
+    const { learnerId, db } = await requireUser();
+    requireSameOrigin(request);
     if (Number(request.headers.get("content-length")) > MAX_IMPORT_BYTES)
       throw new ApiError("Keep the lesson below 300 KB.", 413);
     // Bound streaming reads even when Content-Length is absent.
@@ -39,7 +38,11 @@ export async function POST(request: Request) {
     }
     const { error } = await db
       .from("lessons")
-      .insert({ user_id: user.id, lesson_date: lesson.date, content: lesson });
+      .insert({
+        user_id: learnerId,
+        lesson_date: lesson.date,
+        content: lesson,
+      });
     if (error?.code === "23505")
       throw new ApiError(
         "A lesson already exists for this date. Nothing was replaced. Change the date or open the existing lesson.",

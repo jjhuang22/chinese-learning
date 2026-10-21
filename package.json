@@ -9,10 +9,10 @@
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
     "test:privacy": "playwright test --config=playwright.privacy.config.ts",
-    "test:database": "playwright test --config=playwright.database.config.ts"
+    "test:database": "playwright test --config=playwright.database.config.ts",
+    "test:passcode": "playwright test --config=playwright.passcode.config.ts"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.0.0",
     "lucide-react": "^0.468.0",
     "next": "^16.0.0",
