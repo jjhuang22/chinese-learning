@@ -401,7 +401,9 @@ for (const viewport of [
     ).toBeVisible();
     await page.reload();
     await expect(page.locator(".lesson-heading h1")).toContainText("買得划算");
-    await nav.getByRole("button", { name: "Archive", exact: true }).click();
+    const archive = nav.getByRole("button", { name: /^Archive\b/ });
+    await expect(archive).toHaveText(/Archive\s*(?:·\s*)?1$/);
+    await archive.click();
     await expect(page.locator(".library-summary")).toContainText("1 lesson");
     await expect(page.locator(".library-summary")).toContainText("0 read");
     const progress = await request.get("/api/progress", {
