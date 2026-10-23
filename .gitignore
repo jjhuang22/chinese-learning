@@ -8,3 +8,5 @@ test-results/
 
 # Personal learning data must never enter the public repository.
 .private/
+
+supabase/.temp/

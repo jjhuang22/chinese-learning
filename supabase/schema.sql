@@ -14,17 +14,40 @@ create table if not exists public.lessons (
 alter table public.learner_state enable row level security;
 alter table public.lessons enable row level security;
 drop policy if exists "Own progress" on public.learner_state;
-create policy "Own progress" on public.learner_state for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 drop policy if exists "Read own lessons" on public.lessons;
-create policy "Read own lessons" on public.lessons for select to authenticated using ((select auth.uid()) = user_id);
-revoke all on public.learner_state, public.lessons from anon;
-grant select, insert, update, delete on public.learner_state to authenticated;
 drop policy if exists "Insert own lessons" on public.lessons;
-create policy "Insert own lessons" on public.lessons for insert to authenticated with check ((select auth.uid()) = user_id);
-grant select, insert on public.lessons to authenticated;
+revoke all on public.learner_state, public.lessons from public, anon, authenticated;
 
--- Server-only access used by the passcode app. Existing learner UUIDs are retained.
+-- Only the server can access learning data; old Supabase sessions grant no access.
 grant select, insert, update, delete on public.lessons, public.learner_state to service_role;
+alter table public.learner_state add column if not exists revision bigint not null default 0;
+
+-- Compare and write atomically. A null result means another device saved first.
+create or replace function public.save_progress(learner_id uuid, expected_revision bigint, progress_data jsonb)
+returns bigint
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
+declare
+  saved_revision bigint;
+begin
+  if expected_revision = 0 then
+    insert into public.learner_state (user_id, data, revision)
+      values (learner_id, progress_data, 1)
+      on conflict (user_id) do nothing
+      returning revision into saved_revision;
+    if found then return saved_revision; end if;
+  end if;
+  update public.learner_state
+    set data = progress_data, revision = revision + 1, updated_at = now()
+    where user_id = learner_id and revision = expected_revision
+    returning revision into saved_revision;
+  return saved_revision;
+end;
+$function$;
+revoke all on function public.save_progress(uuid, bigint, jsonb) from public, anon, authenticated;
+grant execute on function public.save_progress(uuid, bigint, jsonb) to service_role;
 
 -- Durable attempt limits shared by all serverless instances.
 create table if not exists public.passcode_attempts (
@@ -69,3 +92,6 @@ end;
 $function$;
 revoke all on function public.register_unlock_attempt(text) from public, anon, authenticated;
 grant execute on function public.register_unlock_attempt(text) to service_role;
+
+-- Refresh PostgREST metadata after adding columns and RPCs.
+notify pgrst, 'reload schema';

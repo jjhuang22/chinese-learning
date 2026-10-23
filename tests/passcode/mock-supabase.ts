@@ -13,7 +13,9 @@ await db.exec(await readFile("supabase/schema.sql", "utf8"));
 const fixture = JSON.parse(
   await readFile("lib/sample-lessons.json", "utf8"),
 )[1];
+let missingRevision = false;
 async function reset() {
+  missingRevision = false;
   await db.exec(
     "reset role;truncate public.lessons,public.learner_state,public.passcode_attempts;",
   );
@@ -43,6 +45,10 @@ createServer(async (request, response) => {
     }
     if (url.pathname === "/__reset" && request.method === "POST") {
       await reset();
+      if (url.searchParams.get("empty") === "1") {
+        await db.query("delete from public.lessons where user_id=$1", [owner]);
+      }
+      missingRevision = url.searchParams.get("missing-revision") === "1";
       send(200, { reset: true });
       return;
     }
@@ -59,6 +65,15 @@ createServer(async (request, response) => {
         [body.client_key],
       );
       send(200, rows[0].allowed);
+      return;
+    }
+    if (url.pathname === "/rest/v1/rpc/save_progress") {
+      const { rows } = await db.query<{ revision: number | null }>(
+        "select public.save_progress($1,$2,$3) as revision",
+        [body.learner_id, body.expected_revision, body.progress_data],
+      );
+      // PostgREST returns bigint JSON numbers, while the SQL driver returns bigint.
+      send(200, rows[0].revision === null ? null : Number(rows[0].revision));
       return;
     }
     const id = url.searchParams.get("user_id")?.replace(/^eq\./, "");
@@ -82,19 +97,21 @@ createServer(async (request, response) => {
     }
     if (url.pathname === "/rest/v1/learner_state") {
       if (request.method === "GET") {
+        if (
+          missingRevision &&
+          url.searchParams.get("select")?.includes("revision")
+        ) {
+          send(400, {
+            code: "42703",
+            message: "column learner_state.revision does not exist",
+          });
+          return;
+        }
         const { rows } = await db.query(
-          "select data from public.learner_state where user_id=$1",
+          "select data, revision from public.learner_state where user_id=$1",
           [id],
         );
         send(200, rows);
-        return;
-      }
-      if (request.method === "POST") {
-        await db.query(
-          "insert into public.learner_state(user_id,data,updated_at) values ($1,$2,$3) on conflict(user_id) do update set data=excluded.data,updated_at=excluded.updated_at",
-          [body.user_id, body.data, body.updated_at],
-        );
-        send(201, null);
         return;
       }
     }

@@ -9,6 +9,7 @@ import {
 } from "@/lib/server";
 import {
   attemptKey,
+  passcodeConfig,
   cookieOptions,
   createSession,
   matchesPasscode,
@@ -25,8 +26,10 @@ export async function POST(request: Request) {
         .parse(JSON.parse(await readBody(request, 2048)));
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError("Enter your passcode.", 400);
+      throw new ApiError("Enter your password.", 400);
     }
+    if (!passcodeConfig())
+      throw new ApiError("The editing password is not configured.", 503);
     const { db } = adminClient();
     const { data: allowed, error } = await db.rpc("register_unlock_attempt", {
       client_key: attemptKey(request),
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
         },
       );
     if (!matchesPasscode(input.passcode))
-      throw new ApiError("Incorrect passcode.", 401);
+      throw new ApiError("Incorrect password.", 401);
     const response = NextResponse.json(
       { unlocked: true },
       { headers: { "Cache-Control": "private, no-store" } },

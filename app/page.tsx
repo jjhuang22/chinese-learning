@@ -1,11 +1,11 @@
 import { readFile } from "node:fs/promises";
-import { redirect } from "next/navigation";
 import StudyApp from "@/components/study-app";
 import { adminClient } from "@/lib/server";
 import { isUnlocked } from "@/lib/passcode";
-import { emptyState } from "@/lib/model";
+import { loadProgress } from "@/lib/load-progress";
+import { loadLessons } from "@/lib/library";
 import { localDemoAllowed } from "@/lib/demo";
-import { lessonSchema, type Lesson } from "@/lib/model";
+import { emptyState, lessonSchema, type Lesson } from "@/lib/model";
 import samples from "@/lib/sample-lessons.json";
 export const dynamic = "force-dynamic";
 export default async function Page() {
@@ -29,32 +29,22 @@ export default async function Page() {
     }
     return <StudyApp initialLessons={initialLessons} localDemo />;
   }
-  if (!(await isUnlocked())) redirect("/sign-in");
+  const canEdit = await isUnlocked();
   const { db, learnerId } = adminClient();
   const [history, progress] = await Promise.all([
-    db
-      .from("lessons")
-      .select("content")
-      .eq("user_id", learnerId)
-      .order("lesson_date"),
-    db
-      .from("learner_state")
-      .select("data")
-      .eq("user_id", learnerId)
-      .maybeSingle(),
+    loadLessons(db, learnerId),
+    canEdit
+      ? loadProgress(db, learnerId)
+      : Promise.resolve({ state: emptyState, revision: 0 }),
   ]);
-  if (history.error || progress.error)
-    throw new Error(
-      "Your private library could not be loaded. Check Supabase setup.",
-    );
-  const initialLessons = (history.data ?? []).map(
-    (row) => row.content as Lesson,
-  );
+  const initialLessons = history;
   return (
     <StudyApp
       initialLessons={initialLessons}
-      initialState={progress.data?.data ?? emptyState}
+      initialState={progress.state}
+      initialRevision={progress.revision}
       localDemo={false}
+      initialCanEdit={canEdit}
     />
   );
 }
