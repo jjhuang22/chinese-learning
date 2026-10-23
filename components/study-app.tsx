@@ -249,6 +249,13 @@ export default function StudyApp({
     }));
     setNotice("Saved to your review deck");
   }
+  function unsaveCard(card: Card) {
+    setState((prev) => ({
+      ...prev,
+      cards: prev.cards.filter((c) => c.id !== card.id),
+    }));
+    setNotice("Removed from your review deck");
+  }
   function dismiss(s: Suggestion) {
     setState((prev) => ({
       ...prev,
@@ -686,8 +693,16 @@ export default function StudyApp({
                         <p>{s.meaning}</p>
                         <button
                           className={saved ? "saved-card" : "save-card"}
-                          disabled={Boolean(saved) || dismissed}
-                          onClick={() => saveCard(s)}
+                          disabled={saved?.status === "archived" || dismissed}
+                          aria-pressed={Boolean(saved)}
+                          title={
+                            saved?.status === "active"
+                              ? "Remove from review"
+                              : undefined
+                          }
+                          onClick={() =>
+                            saved ? unsaveCard(saved) : saveCard(s)
+                          }
                         >
                           {saved ? <Check size={15} /> : <Plus size={15} />}{" "}
                           {saved
@@ -1107,6 +1122,7 @@ export default function StudyApp({
             saveCard(s);
             setModal(null);
           }}
+          onUnsave={unsaveCard}
           onSource={() => {
             const c = findCard(state.cards, modal.text);
             if (c) {
@@ -1223,6 +1239,7 @@ function CardDialog({
   onClose,
   onSave,
   onUpdate,
+  onUnsave,
   onSource,
 }: {
   suggestion: Suggestion;
@@ -1231,6 +1248,7 @@ function CardDialog({
   onClose: () => void;
   onSave: (s: Suggestion) => void;
   onUpdate: (s: Suggestion) => void;
+  onUnsave: (card: Card) => void;
   onSource: () => void;
 }) {
   const [draft, setDraft] = useState(suggestion);
@@ -1326,8 +1344,12 @@ function CardDialog({
             </button>
             <button
               className={existing ? "secondary" : "primary"}
-              disabled={Boolean(existing)}
-              onClick={() => onSave(draft)}
+              disabled={existing?.status === "archived"}
+              aria-pressed={Boolean(existing)}
+              title={
+                existing?.status === "active" ? "Remove from review" : undefined
+              }
+              onClick={() => (existing ? onUnsave(existing) : onSave(draft))}
             >
               {existing ? <Check size={17} /> : <Plus size={17} />}{" "}
               {existing
@@ -1337,6 +1359,11 @@ function CardDialog({
                 : "Save flashcard"}
             </button>
           </div>
+          {existing?.status === "active" && (
+            <p className="muted">
+              Click “Saved to review” again to remove this card.
+            </p>
+          )}
           {existing && (
             <button className="source-link" onClick={onSource}>
               Return to original lesson <ArrowUpRight size={14} />

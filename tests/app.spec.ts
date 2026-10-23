@@ -50,11 +50,11 @@ test("saving a highlight updates the suggestions once, persists, and supports ar
     .filter({ has: page.getByRole("heading", { name: "觀望", exact: true }) });
   await expect(
     suggestion.getByRole("button", { name: "Saved", exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await page.reload();
   await expect(
     suggestion.getByRole("button", { name: "Saved", exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await nav(page, "Review");
   await expect(
     page.getByRole("heading", { name: "1 cards to revisit" }),
@@ -76,6 +76,58 @@ test("saving a highlight updates the suggestions once, persists, and supports ar
   await expect(page.locator(".deck-word")).toContainText("觀望");
   await page.getByRole("button", { name: "Restore", exact: true }).click();
   await page.getByRole("button", { name: "Due", exact: true }).click();
+  await expect(page.locator(".deck-word")).toContainText("觀望");
+});
+test("saved phrases can be unsaved from suggestions and the dialog, then saved again", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const suggestion = page.locator(".suggestion-card").filter({
+    has: page.getByRole("heading", { name: "觀望", exact: true }),
+  });
+  await suggestion
+    .getByRole("button", { name: "Save flashcard", exact: true })
+    .click();
+  await suggestion.getByRole("button", { name: "Saved", exact: true }).click();
+  await expect(
+    suggestion.getByRole("button", { name: "Save flashcard", exact: true }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await page.reload();
+  await expect(
+    suggestion.getByRole("button", { name: "Save flashcard", exact: true }),
+  ).toBeEnabled();
+  await nav(page, "Review");
+  await expect(page.locator(".deck-word")).toHaveCount(0);
+  await nav(page, "Today");
+  await suggestion
+    .getByRole("button", { name: "Save flashcard", exact: true })
+    .click();
+  const phrase = page
+    .getByRole("button", { name: "Look up 觀望", exact: true })
+    .first();
+  await expect(phrase).toHaveClass(/word-saved/);
+  await phrase.click();
+  const dialog = page.getByRole("dialog");
+  await dialog
+    .getByRole("button", { name: "Saved to review", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("button", { name: "Save flashcard", exact: true }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await expect(
+    suggestion.getByRole("button", { name: "Save flashcard", exact: true }),
+  ).toBeEnabled();
+  await expect(phrase).not.toHaveClass(/word-saved/);
+  await page.reload();
+  await nav(page, "Review");
+  await expect(page.locator(".deck-word")).toHaveCount(0);
+  await nav(page, "Today");
+  await phrase.click();
+  await dialog
+    .getByRole("button", { name: "Save flashcard", exact: true })
+    .click();
+  await nav(page, "Review");
+  await expect(page.locator(".deck-word")).toHaveCount(1);
   await expect(page.locator(".deck-word")).toContainText("觀望");
 });
 test("arbitrary selected phrases become editable contextual cards", async ({
@@ -188,7 +240,7 @@ test("suggestions share one approval state and bulk saving respects dismissals",
     page
       .getByRole("dialog")
       .getByRole("button", { name: "Saved to review", exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
 });
 
 test("reader uses paragraphs with multiple inline sentences and removes ornamental copy", async ({
