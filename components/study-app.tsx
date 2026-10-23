@@ -137,6 +137,9 @@ export default function StudyApp({
     };
   const active = viewState.cards.filter((c) => c.status === "active");
   const due = active.filter((c) => c.dueAt <= Date.now());
+  const unread = canEdit
+    ? lessons.filter((lesson) => !viewState.read.includes(lesson.id)).length
+    : 0;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
@@ -318,6 +321,11 @@ export default function StudyApp({
             >
               <item.icon size={19} />
               <span>{item.label}</span>
+              {item.id === "library" && unread > 0 && (
+                <span className="count" title="Unread lessons">
+                  {unread}
+                </span>
+              )}
               {item.id === "review" && due.length > 0 && (
                 <span className="count">{due.length}</span>
               )}
@@ -435,6 +443,7 @@ export default function StudyApp({
             <item.icon size={21} />
             <span>
               {item.label}
+              {item.id === "library" && unread ? ` · ${unread}` : ""}
               {item.id === "review" && due.length ? ` · ${due.length}` : ""}
             </span>
           </button>

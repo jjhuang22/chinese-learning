@@ -520,3 +520,29 @@ test("review search accepts plain, accented, spaced, and numbered pinyin", async
   await search.clear();
   await expect(page.locator(".deck-list article")).toHaveCount(2);
 });
+
+test("Archive unread count follows read status and persists after reload", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const navigation = page.locator(
+    (await page.locator(".mobile-nav").isVisible())
+      ? ".mobile-nav"
+      : ".sidebar nav",
+  );
+  const archive = navigation.getByRole("button", { name: /^Archive/ });
+  await expect(archive).toContainText("2");
+  await page.getByRole("button", { name: "Mark as read", exact: true }).click();
+  await expect(archive).toContainText("1");
+  await page.reload();
+  await expect(archive).toContainText("1");
+  await page.getByRole("button", { name: "Lesson read", exact: true }).click();
+  await expect(archive).toContainText("2");
+  await page.getByRole("button", { name: "Mark as read", exact: true }).click();
+  await archive.click();
+  await page.locator(".library-lesson").filter({ hasText: "Unread" }).click();
+  await page.getByRole("button", { name: "Mark as read", exact: true }).click();
+  await expect(archive).toHaveText("Archive");
+  await page.reload();
+  await expect(archive).toHaveText("Archive");
+});
