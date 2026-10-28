@@ -22,9 +22,6 @@ export default function DailyReview({
     return card ? [card] : [];
   });
   const card = selected[index];
-  const allSeen =
-    selected.length > 0 &&
-    selected.every((c) => session.seenIds.includes(c.id));
   if (!card)
     return (
       <section className="review-session daily-review">
@@ -85,18 +82,15 @@ export default function DailyReview({
           <span className="flip-hint">Reveal meaning</span>
         )}
       </button>
-      {index === selected.length - 1 && (
-        <button
-          className="primary next-card"
-          disabled={!allSeen}
-          onClick={() => {
-            onComplete();
-            onHome();
-          }}
-        >
-          Finish review
-        </button>
-      )}
+      <button
+        className="primary next-card"
+        onClick={() => {
+          onComplete();
+          onHome();
+        }}
+      >
+        Finish review
+      </button>
     </section>
   );
 }

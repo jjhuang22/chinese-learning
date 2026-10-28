@@ -7,6 +7,8 @@ import {
   finishDailySet,
 } from "../lib/daily-review";
 import { Card, emptyState, progressSchema } from "../lib/model";
+import { DAILY_REVIEW_LIMIT } from "../lib/review-config";
+import { createReviewSession } from "../lib/review-session";
 
 const card: Card = {
   id: "word-1",
@@ -32,8 +34,8 @@ async function nav(page: Page, name: string) {
     .click();
 }
 
-test("daily selection samples all active cards and caps at ten without duplicates", () => {
-  const cards = Array.from({ length: 20 }, (_, i) => ({
+test("daily selection and validation use the configured limit without a hidden sampler cap", () => {
+  const cards = Array.from({ length: DAILY_REVIEW_LIMIT + 10 }, (_, i) => ({
     ...card,
     id: `${i}`,
     text: `字${i}`,
@@ -48,24 +50,46 @@ test("daily selection samples all active cards and caps at ten without duplicate
     () => 0,
   );
   expect(selected.map((c) => c.id)).toEqual(
-    cards.slice(1, 11).map((c) => c.id),
+    cards.slice(1, DAILY_REVIEW_LIMIT + 1).map((c) => c.id),
   );
-  expect(new Set(selected.map((c) => c.text)).size).toBe(10);
+  expect(new Set(selected.map((c) => c.text)).size).toBe(DAILY_REVIEW_LIMIT);
   expect(selectDailyCards([])).toEqual([]);
+  const session = {
+    date: "2026-10-28",
+    cardIds: selected.map((c) => c.id),
+    seenIds: [],
+  };
+  expect(
+    progressSchema.safeParse({ ...emptyState, cards, dailyReview: session })
+      .success,
+  ).toBe(true);
+  expect(
+    progressSchema.safeParse({
+      ...emptyState,
+      cards,
+      dailyReview: { ...session, cardIds: [...session.cardIds, "extra"] },
+    }).success,
+  ).toBe(false);
+  expect(createReviewSession(cards, () => 0, cards.length)).toHaveLength(
+    cards.length,
+  );
   expect(recordDailyReview(cards[0], 100).dueAt).toBe(cards[0].dueAt);
 });
 
-test("daily sets persist until the next day, count each card once, and require viewing all cards to finish", () => {
+test("daily sets persist until the next day, count each card once, and can finish without viewing every card", () => {
   const original = {
     ...emptyState,
     cards: [card, { ...card, id: "2", text: "每天" }],
   };
   const started = startDailySet(original, "2026-10-27");
   expect(startDailySet(started, "2026-10-27")).toBe(started);
-  expect(finishDailySet(started).reviewedOn).toBeUndefined();
+  const early = finishDailySet(started);
+  expect(early.reviewedOn).toBe("2026-10-27");
+  expect(early.dailyReview?.seenIds).toEqual([]);
+  expect(early.cards.every((c) => c.reviews === 0)).toBe(true);
   const first = viewDailyCard(started, "word-1", 100);
   expect(viewDailyCard(first, "word-1", 200)).toBe(first);
-  expect(finishDailySet(first).reviewedOn).toBeUndefined();
+  expect(finishDailySet(first).reviewedOn).toBe("2026-10-27");
   const finished = finishDailySet(viewDailyCard(first, "2", 100));
   expect(finished.reviewedOn).toBe("2026-10-27");
   expect(finished.cards.every((c) => c.reviews === 1)).toBe(true);
@@ -129,7 +153,7 @@ test("Home completion stays actionable; daily cards support backtracking, repeat
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Finish review" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   const second = await page.locator(".flashcard h2").innerText();
   await page.getByRole("button", { name: "Previous" }).click();
   await page
@@ -252,4 +276,52 @@ test("flashcards keep their dimensions and word position on reveal, with scrolli
     expect(await flashcard.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
     await nav(page, "Home");
   }
+});
+
+test("Finish review is enabled on every card and early completion persists without counting unseen cards", async ({
+  page,
+}) => {
+  const cards = Array.from({ length: DAILY_REVIEW_LIMIT }, (_, i) => ({
+    ...card,
+    id: `early-${i}`,
+    text: `字${i}`,
+  }));
+  await page.addInitScript(
+    (saved) => {
+      if (!localStorage.getItem("everyday-chinese-v1"))
+        localStorage.setItem("everyday-chinese-v1", JSON.stringify(saved));
+    },
+    { ...emptyState, cards },
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start review", exact: true }).click();
+  const first = await page.locator(".flashcard h2").innerText();
+  await page
+    .getByRole("button", { name: "Finish review", exact: true })
+    .click();
+  await expect(page.locator(".daily-activities")).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: "Daily review completed" }),
+  ).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Review again", exact: true }).click();
+  await expect(page.locator(".flashcard h2")).toHaveText(first);
+  for (let i = 0; i < cards.length; i++) {
+    await expect(
+      page.getByRole("button", { name: "Finish review", exact: true }),
+    ).toBeEnabled();
+    await expect(page.locator(".daily-card-navigation")).toContainText(
+      `${i + 1} / ${cards.length}`,
+    );
+    if (i < cards.length - 1)
+      await page.getByRole("button", { name: "Next", exact: true }).click();
+  }
+  await page
+    .getByRole("button", { name: "Finish review", exact: true })
+    .click();
+  const saved = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("everyday-chinese-v1")!),
+  );
+  expect(saved.dailyReview.seenIds).toEqual([]);
+  expect(saved.cards.every((c: Card) => c.reviews === 0)).toBe(true);
 });

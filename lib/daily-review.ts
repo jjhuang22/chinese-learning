@@ -1,6 +1,7 @@
 import { Card, cardKey, StudyState, localDate } from "./model";
 import { createReviewSession } from "./review-session";
 import { DAY } from "./cards";
+import { DAILY_REVIEW_LIMIT } from "./review-config";
 
 export function selectDailyCards(cards: Card[], random = Math.random): Card[] {
   const seen = new Set<string>();
@@ -10,7 +11,7 @@ export function selectDailyCards(cards: Card[], random = Math.random): Card[] {
     seen.add(key);
     return true;
   });
-  const ids = createReviewSession(active, random).slice(0, 10);
+  const ids = createReviewSession(active, random, DAILY_REVIEW_LIMIT);
   return ids.map((id) => active.find((card) => card.id === id)!);
 }
 
@@ -56,14 +57,6 @@ export function viewDailyCard(
 
 export function finishDailySet(state: StudyState): StudyState {
   const session = state.dailyReview;
-  if (!session) return state;
-  const available = session.cardIds.filter((id) =>
-    state.cards.some((card) => card.id === id),
-  );
-  if (
-    !available.length ||
-    !available.every((id) => session.seenIds.includes(id))
-  )
-    return state;
+  if (!session?.cardIds.length) return state;
   return { ...state, reviewedOn: session.date };
 }

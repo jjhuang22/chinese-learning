@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DAILY_REVIEW_LIMIT } from "./review-config";
 export const calendarDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
@@ -57,8 +58,8 @@ export const progressSchema = z
     dailyReview: z
       .object({
         date: calendarDateSchema,
-        cardIds: z.array(z.string().min(1)).max(10),
-        seenIds: z.array(z.string().min(1)).max(10),
+        cardIds: z.array(z.string().min(1)).max(DAILY_REVIEW_LIMIT),
+        seenIds: z.array(z.string().min(1)).max(DAILY_REVIEW_LIMIT),
       })
       .refine(
         (session) =>
