@@ -35,8 +35,6 @@ select {
 button {
   cursor: pointer;
   color: inherit;
-}
-button {
   border: 0;
   background: none;
 }
@@ -104,16 +102,11 @@ p {
   margin-top: 5px;
   color: var(--muted);
 }
-.sidebar-label {
-  font-size: 9px;
-  letter-spacing: 1.7px;
-  color: var(--muted);
-  margin: 65px 12px 18px;
-}
 .sidebar nav {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  margin-top: 48px;
 }
 .sidebar nav button {
   display: flex;
@@ -139,23 +132,6 @@ p {
 }
 .sidebar-bottom {
   margin-top: auto;
-}
-.daily-note {
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 20px;
-  padding: 26px 12px;
-}
-.daily-note > span {
-  font-family: var(--serif);
-  font-size: 25px;
-  letter-spacing: 4px;
-  color: #667d60;
-}
-.daily-note p {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.8;
-  margin: 15px 0 0;
 }
 .settings-button {
   display: flex;
@@ -188,50 +164,34 @@ main {
   margin-left: 230px;
 }
 .topbar {
-  height: 87px;
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 5.5%;
+  height: 64px;
 }
 .breadcrumb {
-  font-size: 9px;
-  letter-spacing: 2.2px;
   color: #87917f;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .topbar-right {
   display: flex;
   align-items: center;
   gap: 24px;
 }
-.schedule {
-  font-size: 11px;
-  color: #7d8775;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.avatar {
-  border: 1px solid #d4dccb;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  color: #65765b;
-  font-family: var(--serif);
-}
 .content {
   max-width: 1100px;
-  padding: 49px 6% 0;
   margin: 0 auto;
+  padding: 26px 6% 0;
 }
 .page-eyebrow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 25px;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 .eyebrow {
   font-size: 9px;
@@ -246,32 +206,17 @@ main {
 }
 .lesson-heading h1 {
   font-family: var(--serif);
-  font-size: clamp(26px, 2.65vw, 38px);
   font-weight: 500;
   letter-spacing: 0.5px;
   line-height: 1.6;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
+  font-size: 30px;
 }
 .lesson-heading p,
 .page-heading p {
   font-size: 13px;
   color: var(--muted);
   margin-bottom: 21px;
-}
-.lesson-meta {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  color: #868b80;
-  font-size: 10px;
-  margin-bottom: 28px;
-}
-.pill {
-  padding: 5px 8px;
-  border: 1px solid #d5dfcf;
-  border-radius: 4px;
-  color: #638058;
-  font-size: 10px;
 }
 .meta-divider {
   width: 1px;
@@ -307,7 +252,7 @@ main {
   gap: 14px;
   font-size: 10px;
   color: #909486;
-  padding: 0 0 18px;
+  padding: 0 0 12px;
   border-bottom: 1px solid var(--line);
 }
 .reader-toolbar > div {
@@ -352,32 +297,32 @@ main {
   transform: translateX(11px);
 }
 .passage {
-  padding: 34px 0 35px;
   border-bottom: 1px solid var(--line);
+  padding: 22px 0;
 }
 .passage-heading {
   display: flex;
   align-items: center;
-  gap: 17px;
-  margin-bottom: 25px;
+  gap: 12px;
+  margin-bottom: 15px;
 }
 .passage-number {
   font-family: Georgia, serif;
-  font-size: 22px;
   color: #899b76;
   border: 1px solid #d9e0d0;
   border-radius: 5px;
-  width: 42px;
-  height: 47px;
   display: grid;
   place-items: center;
+  width: 34px;
+  height: 37px;
+  font-size: 18px;
 }
 .passage-heading h2 {
   font-family: var(--serif);
   font-weight: 500;
-  font-size: 21px;
   line-height: 1.7;
-  margin: 5px 0 0;
+  margin: 0;
+  font-size: 21px;
 }
 .passage-heading .eyebrow {
   font-size: 8px;
@@ -386,16 +331,19 @@ main {
 .chinese-text {
   font-family: var(--serif);
   font-size: 19px;
-  line-height: 2.2;
-  letter-spacing: 0.7px;
   color: #3c433a;
+  line-height: 1.95;
+  letter-spacing: 0.3px;
 }
 .sentence-block {
-  margin: 0 0 14px;
+  display: inline;
+  margin: 0;
 }
 .sentence {
   border-radius: 3px;
   cursor: pointer;
+  display: inline;
+  margin: 0;
 }
 .sentence:hover {
   background: #f0f0e7;
@@ -424,9 +372,10 @@ main {
   letter-spacing: 0.15px;
   color: #7c8a6c;
   line-height: 1.9;
-  margin: 3px 0 19px;
   padding: 0 0 0 12px;
   border-left: 2px solid #d4dfc7;
+  display: block;
+  margin: 5px 0 10px;
 }
 .primary,
 .secondary {
@@ -463,7 +412,7 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 25px 0 40px;
+  padding: 18px 0 22px;
 }
 .difficulty {
   display: flex;
@@ -491,14 +440,14 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  margin: 23px 0;
+  margin: 14px 0;
 }
 .section-title h2 {
-  font-family: Georgia, serif;
   font-weight: 400;
-  font-size: 26px;
-  letter-spacing: -0.3px;
-  margin: 7px 0 9px;
+  font-family: Arial, sans-serif;
+  font-size: 19px;
+  letter-spacing: 0;
+  margin: 0;
 }
 .section-title p {
   color: var(--muted);
@@ -588,23 +537,6 @@ main {
 }
 .dismissed {
   opacity: 0.5;
-}
-.page-footer {
-  border-top: 1px solid var(--line);
-  margin-top: 55px;
-  padding: 25px 0 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-family: var(--serif);
-  color: #9ca48f;
-  font-size: 13px;
-  letter-spacing: 2px;
-}
-.page-footer span {
-  font-family: Arial, sans-serif;
-  font-size: 10px;
-  letter-spacing: 0.2px;
 }
 .page-heading {
   margin: 15px 0 35px;
@@ -1085,6 +1017,159 @@ main {
 .warning button {
   text-decoration: underline;
 }
+.usage-notes {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0 0;
+}
+.usage-notes details {
+  background: #eff1e8;
+  border: 1px solid #e1e5d8;
+  border-radius: 6px;
+  margin: 10px 0;
+  padding: 12px 16px;
+}
+.usage-notes summary {
+  font-family: var(--serif);
+  font-size: 19px;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+  line-height: 1.8;
+}
+.usage-notes summary::-webkit-details-marker {
+  display: none;
+}
+.usage-notes details[open] summary svg {
+  transform: rotate(45deg);
+}
+.usage-note-text {
+  white-space: pre-line;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #75826a;
+  border-top: 1px solid #dce2d2;
+  margin-top: 18px;
+  padding-top: 18px;
+  user-select: text;
+}
+.reading-paragraph {
+  line-height: 1.95;
+  margin: 0 0 15px;
+}
+.reading-paragraph:last-child {
+  margin-bottom: 0;
+}
+.sign-in-page {
+  margin: 0;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.sign-in-card {
+  width: 100%;
+  max-width: 360px;
+}
+.sign-in-card h1 {
+  font-family: Georgia, serif;
+  font-size: 32px;
+  font-weight: 400;
+  margin: 22px 0;
+}
+.sign-in-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sign-in-card label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.sign-in-card input {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--white);
+  color: var(--ink);
+  width: 100%;
+}
+.sign-in-card p {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sign-in-card > .text-button {
+  margin-top: 15px;
+}
+.import-trigger {
+  font-size: 12px;
+  min-height: 40px;
+}
+.import-label {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 9px;
+}
+.import-input {
+  width: 100%;
+  min-height: 260px;
+  resize: vertical;
+  background: #f9faf5;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.import-help {
+  font-size: 13px;
+  color: var(--muted);
+}
+.import-resources {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--green);
+  margin: 16px 0 22px;
+}
+.import-error {
+  font-size: 12px;
+  line-height: 1.8;
+  padding: 12px;
+  border-radius: 5px;
+  color: #8c4d37;
+  background: #f6ece4;
+  margin: 16px 0 0;
+}
+.import-preview {
+  margin: 22px 0;
+}
+.import-preview h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 23px;
+  line-height: 1.7;
+  margin-top: 12px;
+}
+.import-preview h3 {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 500;
+}
+.import-preview p {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--muted);
+}
+.import-preview .muted {
+  font-size: 11px;
+}
 @media (min-width: 1500px) {
   .content {
     padding-left: 55px;
@@ -1105,9 +1190,6 @@ main {
   }
   .suggestion-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .lesson-heading h1 {
-    font-size: 29px;
   }
   .selection-bar,
   .toast {
@@ -1136,28 +1218,19 @@ main {
     margin-left: 0;
   }
   .topbar {
-    height: 65px;
     padding: 0 22px;
-  }
-  .breadcrumb {
-    font-size: 8px;
-    letter-spacing: 1.7px;
-  }
-  .schedule,
-  .avatar {
-    display: none;
+    height: 54px;
   }
   .mobile-settings {
     display: flex;
   }
   .content {
-    padding: 30px 22px 95px;
     max-width: 640px;
+    padding: 20px 22px 95px;
   }
   .page-eyebrow {
     align-items: flex-start;
     gap: 15px;
-    margin-bottom: 20px;
   }
   .date {
     font-size: 9px;
@@ -1165,24 +1238,14 @@ main {
     line-height: 1.7;
   }
   .lesson-heading h1 {
-    font-size: 27px;
     line-height: 1.7;
     letter-spacing: 0.4px;
-    margin-bottom: 13px;
+    font-size: 25px;
   }
   .lesson-heading p {
     font-size: 12px;
     margin-bottom: 18px;
     line-height: 1.8;
-  }
-  .lesson-meta {
-    gap: 8px;
-    font-size: 9px;
-    flex-wrap: wrap;
-    margin-bottom: 22px;
-  }
-  .pill {
-    font-size: 9px;
   }
   .sample-banner {
     font-size: 10px;
@@ -1202,7 +1265,7 @@ main {
   .reader-toolbar {
     flex-wrap: wrap;
     gap: 15px;
-    padding-bottom: 18px;
+    gap: 8px;
   }
   .reader-toolbar > div {
     font-size: 9px;
@@ -1211,31 +1274,17 @@ main {
   .toggle {
     margin-left: auto;
     font-size: 10px;
-  }
-  .passage {
-    padding: 27px 0;
-  }
-  .passage-heading {
-    gap: 13px;
-    margin-bottom: 22px;
+    min-height: 40px;
   }
   .passage-number {
-    width: 35px;
-    height: 41px;
-    font-size: 19px;
     flex-shrink: 0;
   }
   .passage-heading h2 {
-    font-size: 19px;
     line-height: 1.8;
+    font-size: 18px;
   }
   .chinese-text {
     font-size: 19px;
-    line-height: 2.15;
-    letter-spacing: 0.5px;
-  }
-  .sentence-block {
-    margin-bottom: 16px;
   }
   .pinyin-line {
     font-size: 12px;
@@ -1246,7 +1295,6 @@ main {
     flex-direction: column;
     align-items: stretch;
     gap: 20px;
-    padding: 24px 0;
   }
   .difficulty {
     justify-content: center;
@@ -1260,29 +1308,32 @@ main {
   .difficulty button {
     padding: 8px;
     font-size: 9px;
+    min-height: 36px;
   }
   .section-title {
     align-items: flex-start;
     flex-direction: column;
     gap: 16px;
-    margin-top: 30px;
-  }
-  .section-title h2 {
-    font-size: 26px;
-    margin-top: 9px;
+    flex-direction: row;
+    align-items: center;
   }
   .section-title p {
     font-size: 11px;
   }
   .section-title > .secondary {
     align-self: flex-end;
+    font-size: 11px;
   }
   .suggestion-grid {
     gap: 11px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .suggestion-card {
-    padding: 13px 12px;
+    padding-top: 13px;
+    padding-right: 12px;
+    padding-bottom: 13px;
+    padding-left: 12px;
+    padding: 15px 13px;
   }
   .suggestion-top {
     margin-bottom: 9px;
@@ -1290,6 +1341,7 @@ main {
   .kind {
     font-size: 7px;
     letter-spacing: 1px;
+    font-size: 8px;
   }
   .expression-link h3 {
     font-size: 22px;
@@ -1298,28 +1350,20 @@ main {
   }
   .expression-link span {
     font-size: 10px;
+    font-size: 11px;
   }
   .suggestion-card > p {
     font-size: 10px;
     line-height: 1.8;
+    font-size: 12px;
+    line-height: 1.75;
   }
   .save-card,
   .saved-card {
     font-size: 9px;
-  }
-  .page-footer {
-    margin-top: 35px;
-    padding-top: 25px;
-    font-size: 12px;
-    gap: 20px;
-    align-items: flex-start;
-  }
-  .page-footer span {
-    font-size: 9px;
-    letter-spacing: 0;
-    max-width: 115px;
-    text-align: right;
-    line-height: 1.7;
+    min-height: 42px;
+    font-size: 11px;
+    padding-top: 8px;
   }
   .mobile-nav {
     display: flex;
@@ -1498,238 +1542,18 @@ main {
     font-size: 11px;
     padding: 12px 22px;
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  * {
-    scroll-behavior: auto !important;
-    transition: none !important;
-  }
-}
-.usage-notes {
-  padding: 26px 0 10px;
-  border-bottom: 1px solid var(--line);
-}
-.usage-notes details {
-  margin: 18px 0;
-  background: #eff1e8;
-  border: 1px solid #e1e5d8;
-  border-radius: 6px;
-  padding: 17px 20px;
-}
-.usage-notes summary {
-  font-family: var(--serif);
-  font-size: 19px;
-  cursor: pointer;
-  list-style: none;
-  display: flex;
-  justify-content: space-between;
-  gap: 15px;
-  align-items: center;
-  line-height: 1.8;
-}
-.usage-notes summary::-webkit-details-marker {
-  display: none;
-}
-.usage-notes details[open] summary svg {
-  transform: rotate(45deg);
-}
-.usage-note-text {
-  white-space: pre-line;
-  font-size: 14px;
-  line-height: 1.9;
-  color: #75826a;
-  border-top: 1px solid #dce2d2;
-  margin-top: 18px;
-  padding-top: 18px;
-  user-select: text;
-}
-@media (max-width: 760px) {
   .usage-notes summary {
     font-size: 17px;
   }
   .usage-note-text {
     font-size: 13px;
   }
-}
-@media (max-width: 760px) {
-  .toggle {
-    min-height: 40px;
-  }
   .icon-button {
     min-width: 34px;
     min-height: 34px;
   }
-  .difficulty button {
-    min-height: 36px;
-  }
-  .save-card,
-  .saved-card {
-    min-height: 42px;
-    font-size: 11px;
-    padding-top: 8px;
-  }
-  .suggestion-card > p {
-    font-size: 12px;
-    line-height: 1.75;
-  }
-  .expression-link span {
-    font-size: 11px;
-  }
-  .kind {
-    font-size: 8px;
-  }
-  .section-title > .secondary {
-    font-size: 11px;
-  }
-  .suggestion-card {
-    padding: 15px 13px;
-  }
-}
-/* A compact reader: paragraphs, with sentence-level pronunciation on demand. */
-.sidebar nav {
-  margin-top: 48px;
-}
-.topbar {
-  height: 64px;
-}
-.breadcrumb {
-  font-size: 12px;
-  letter-spacing: 0;
-  text-transform: none;
-}
-.content {
-  padding-top: 26px;
-}
-.page-eyebrow {
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-.lesson-heading h1 {
-  margin-bottom: 12px;
-  font-size: 30px;
-}
-.generation-action {
-  display: flex;
-  justify-content: flex-end;
-  margin: 0 0 8px;
-}
-.reader-toolbar {
-  padding-bottom: 12px;
-}
-.passage {
-  padding: 22px 0;
-}
-.passage-heading {
-  gap: 12px;
-  margin-bottom: 15px;
-}
-.passage-heading h2 {
-  margin: 0;
-  font-size: 21px;
-}
-.passage-number {
-  width: 34px;
-  height: 37px;
-  font-size: 18px;
-}
-.chinese-text {
-  line-height: 1.95;
-  letter-spacing: 0.3px;
-}
-.reading-paragraph {
-  line-height: 1.95;
-  margin: 0 0 15px;
-}
-.reading-paragraph:last-child {
-  margin-bottom: 0;
-}
-.sentence-block,
-.sentence {
-  display: inline;
-  margin: 0;
-}
-.pinyin-line {
-  display: block;
-  margin: 5px 0 10px;
-}
-.usage-notes {
-  padding: 12px 0 0;
-}
-.usage-notes details {
-  margin: 10px 0;
-  padding: 12px 16px;
-}
-.reading-complete {
-  padding: 18px 0 22px;
-}
-.section-title {
-  margin: 14px 0;
-}
-.section-title h2 {
-  font-family: Arial, sans-serif;
-  font-size: 19px;
-  letter-spacing: 0;
-  margin: 0;
-}
-.sign-in-page {
-  margin: 0;
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-}
-.sign-in-card {
-  width: 100%;
-  max-width: 360px;
-}
-.sign-in-card h1 {
-  font-family: Georgia, serif;
-  font-size: 32px;
-  font-weight: 400;
-  margin: 22px 0;
-}
-.sign-in-card form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.sign-in-card label {
-  font-size: 12px;
-  color: var(--muted);
-}
-.sign-in-card input {
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  background: var(--white);
-  color: var(--ink);
-  width: 100%;
-}
-.sign-in-card p {
-  color: var(--muted);
-  font-size: 13px;
-}
-.sign-in-card > .text-button {
-  margin-top: 15px;
-}
-@media (max-width: 760px) {
-  .content {
-    padding-top: 20px;
-  }
-  .topbar {
-    height: 54px;
-  }
-  .lesson-heading h1 {
-    font-size: 25px;
-  }
-  .reader-toolbar {
-    gap: 8px;
-  }
   .passage {
     padding: 18px 0;
-  }
-  .passage-heading h2 {
-    font-size: 18px;
   }
   .chinese-text,
   .reading-paragraph {
@@ -1738,94 +1562,13 @@ main {
   .reading-paragraph {
     margin-bottom: 14px;
   }
-  .section-title {
-    flex-direction: row;
-    align-items: center;
-  }
   .section-title h2 {
     font-size: 18px;
   }
 }
-.import-trigger {
-  font-size: 12px;
-  min-height: 40px;
-}
-.import-label {
-  display: block;
-  color: var(--muted);
-  font-size: 12px;
-  margin-bottom: 9px;
-}
-.import-input {
-  width: 100%;
-  min-height: 260px;
-  resize: vertical;
-  background: #f9faf5;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 12px;
-  font-family: monospace;
-  font-size: 12px;
-  line-height: 1.7;
-  color: var(--ink);
-}
-.import-help {
-  font-size: 13px;
-  color: var(--muted);
-}
-.import-resources {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  font-size: 11px;
-  color: var(--green);
-  margin: 16px 0 22px;
-}
-.import-error {
-  font-size: 12px;
-  line-height: 1.8;
-  padding: 12px;
-  border-radius: 5px;
-  color: #8c4d37;
-  background: #f6ece4;
-  margin: 16px 0 0;
-}
-.import-preview {
-  margin: 22px 0;
-}
-.import-preview h2 {
-  font-family: var(--serif);
-  font-weight: 500;
-  font-size: 23px;
-  line-height: 1.7;
-  margin-top: 12px;
-}
-.import-preview h3 {
-  font-family: var(--serif);
-  font-size: 18px;
-  font-weight: 500;
-}
-.import-preview p {
-  font-size: 13px;
-  line-height: 1.9;
-  color: var(--muted);
-}
-.import-preview .muted {
-  font-size: 11px;
-}
-.auth-error-detail {
-  margin: 12px 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.7;
-}
-.auth-error-detail summary {
-  cursor: pointer;
-}
-.auth-error-detail p {
-  overflow-wrap: anywhere;
-  font-size: 11px;
-  padding: 10px;
-  background: var(--wash);
-  border-radius: 4px;
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
 }

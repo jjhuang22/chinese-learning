@@ -289,3 +289,51 @@ test("invalid and duplicate imports are rejected without changing the lesson lib
   await nav(page, "Library");
   await expect(page.locator(".library-lesson")).toHaveCount(2);
 });
+
+test("unreadable local progress is preserved until an explicit reset", async ({
+  page,
+}) => {
+  const broken = '{"cards":[{}],"dismissed":[],"read":[],"feedback":{}}';
+  await page.addInitScript(
+    (value) => localStorage.setItem("everyday-chinese-v1", value),
+    broken,
+  );
+  await page.goto("/");
+  await expect(
+    page.getByText(/Saved progress could not be loaded/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Export original data" }),
+  ).toBeVisible();
+  await expect(page.locator(".lesson-heading h1")).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("everyday-chinese-v1")),
+  ).toBe(broken);
+  await page.getByRole("button", { name: "Reset local progress" }).click();
+  await expect(
+    page.getByText(/Saved progress could not be loaded/),
+  ).toHaveCount(0);
+  expect(
+    JSON.parse(
+      (await page.evaluate(() => localStorage.getItem("everyday-chinese-v1")))!,
+    ).cards,
+  ).toEqual([]);
+});
+
+test("editing a card cannot collide with another saved expression", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Save remaining/ }).click();
+  await nav(page, "Review");
+  const words = page.locator(".deck-word");
+  const target = (await words.nth(1).locator("span").textContent())!;
+  await words.first().click();
+  await page.getByRole("button", { name: "Edit card", exact: true }).click();
+  await page.getByLabel("Characters / pattern").fill(target);
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+    "not already saved",
+  );
+  await expect(page.getByRole("dialog")).toBeVisible();
+});

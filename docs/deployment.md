@@ -32,11 +32,11 @@ Existing row-level policies remain enabled. All app data now passes through serv
 
 ## 3. Deploy and unlock
 
-Deploy the latest `main` commit from `jjhuang22/chinese-learning`. The repository's vercel.json selects Next.js and .next output; Root Directory should remain the repository root (blank).
+Deploy the latest `main` commit from `jjhuang22/chinese-learning`. Vercel detects Next.js and uses its default build/output settings; Root Directory should remain the repository root (blank).
 
 Visit https://chinese-learning-ruddy.vercel.app, enter APP_PASSCODE, and click **Unlock**. No email is sent. The cookie lasts 30 days and uses HttpOnly, Secure on Vercel/HTTPS, and SameSite=Strict. Changing APP_PASSCODE, the service key, or LEARNER_USER_ID invalidates all existing app sessions after redeploying.
 
-Use Settings → Lock this device to clear the current cookie. This locks only that device; rotate the passcode to invalidate every device. Sessions do not depend on Supabase Auth email quotas. A locked request cannot fetch the library, import lessons, or load/save progress.
+Use Settings → Lock this device to save pending changes and clear the current cookie. If saving fails, the app stays unlocked so you can retry or export your progress. This locks only that device; rotate the passcode to invalidate every device. Sessions do not depend on Supabase Auth email quotas. A locked request cannot fetch the library, import lessons, or load/save progress.
 
 If the unlock page reports incomplete setup, check all four variables and redeploy. If it says to run the schema, re-run the current SQL file. Repeated incorrect attempts will be limited for up to 15 minutes.
 
@@ -57,19 +57,19 @@ Copy `public/automation-instructions.txt` into your existing ChatGPT automation.
 
 Anyone can visit the unlock page. Private content is fetched only after server verification. Signed tokens cannot be edited to extend expiry or select a different learner. The cookie signing key is derived from the server service key, passcode, and learner UUID, using a purpose-specific HMAC; no extra signing-secret variable is needed. Keep the passcode private and use at least eight characters.
 
-Progress is saved to Supabase, not mirrored into browser storage. Keep a tab open if saving fails. The current sync is last-write-wins, so avoid editing the same deck on multiple devices simultaneously. Previously loaded content can be read by an unlocked device; the app checks the session when a tab regains focus. Locking does not erase copies a previously authorized person might have made.
+Progress is saved to Supabase, not mirrored into browser storage. Keep a tab open if saving fails. Saves within one tab are serialized and opening a library does not write its initial snapshot. Closing a tab with unsaved changes prompts you to stay. Sync across tabs/devices remains last-write-wins, so avoid editing the same deck in multiple places simultaneously. Previously loaded content can be read by an unlocked device; the app checks the session when a tab regains focus. Locking does not erase copies a previously authorized person might have made.
 
-Personal originals remain ignored under .private/original-lessons.json. The optional one-time script `node --env-file=.env.local scripts/import-lessons.mjs` can import them using your local server key and learner UUID. Do not commit learning exports, filled-in environment files, or private lesson data.
+Personal originals remain ignored under .private/original-lessons.json. The optional one-time script `npm run import:lessons` can import them using your local server key and learner UUID. It validates the stored lesson format, accepts either Supabase URL setting, and preserves existing dates. Do not commit learning exports, filled-in environment files, or private lesson data.
 
 ## Local development and tests
 
 `npm run dev` provides an explicitly local, browser-only prototype without credentials outside Vercel. `LOCAL_DEMO=1 npm run start` does the same after building. Vercel always enforces the gate even if LOCAL_DEMO was set. Do not expose local demo mode as a public service.
 
-For a real local gate, use LOCAL_DEMO=0 and the four variables privately in .env.local. No production secrets are required for automated tests:
+For a real local gate, use LOCAL_DEMO=0 and the four variables privately in .env.local. Build once with `npm run build` before the browser suites; `npm run test:privacy` also builds for itself. No production secrets are required for automated tests:
 
 - `npm test`: desktop/mobile reading, imports, and review in a local demo.
 - `npm run test:database`: actual SQL, limiter permissions/reset, duplicate preservation, URL handling, session forgery/expiry/rotation.
-- `npm run test:privacy`: deployment-mode access stays locked without valid setup/session.
-- `npm run test:passcode`: the real protected Next.js routes against a local PostgreSQL test service, including cookie properties, wrong-passcode throttling, data ownership, import, progress, reload, and locking.
+- `npm run test:privacy`: rebuilds with private runtime data present, checks browser bundles for private titles, and verifies deployment-mode access stays locked without a valid session. On a clean checkout it temporarily creates an ignored private canary and removes it afterward; existing originals are never replaced.
+- `npm run test:passcode`: the real protected Next.js routes against a local PostgreSQL test service, including cookie properties, wrong-passcode throttling, data ownership, import cancellation, progress, reload, and flushing pending changes before locking.
 
 Tests do not know your real passcode. Live unlocking must be checked after the variables/schema are supplied. Real iPhone Safari interactions still need a physical device test.

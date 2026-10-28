@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import Dialog from "./dialog";
 import { parseLessonImport } from "@/lib/import-lesson";
-import type { Lesson } from "@/lib/model";
+import { lessonSchema, type Lesson } from "@/lib/model";
 export default function ImportLesson({
   localDemo,
   existingDates,
@@ -38,9 +38,13 @@ export default function ImportLesson({
     setError("");
     try {
       if (localDemo) {
-        const existing = JSON.parse(
-          localStorage.getItem("everyday-chinese-imports-v1") ?? "[]",
-        ) as Lesson[];
+        const existing = lessonSchema
+          .array()
+          .parse(
+            JSON.parse(
+              localStorage.getItem("everyday-chinese-imports-v1") ?? "[]",
+            ),
+          );
         if (existing.some((l) => l.date === preview.date))
           throw new Error("A lesson already exists for this date.");
         localStorage.setItem(

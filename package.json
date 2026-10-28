@@ -8,9 +8,10 @@
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
-    "test:privacy": "playwright test --config=playwright.privacy.config.ts",
+    "test:privacy": "node scripts/test-privacy.mjs",
     "test:database": "playwright test --config=playwright.database.config.ts",
-    "test:passcode": "playwright test --config=playwright.passcode.config.ts"
+    "test:passcode": "playwright test --config=playwright.passcode.config.ts",
+    "import:lessons": "node --experimental-strip-types --env-file=.env.local scripts/import-lessons.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",

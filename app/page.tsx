@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import StudyApp from "@/components/study-app";
 import { adminClient } from "@/lib/server";
 import { isUnlocked } from "@/lib/passcode";
-import { emptyState } from "@/lib/model";
+import { emptyState, progressSchema } from "@/lib/model";
 import { localDemoAllowed } from "@/lib/demo";
 import { lessonSchema, type Lesson } from "@/lib/model";
 import samples from "@/lib/sample-lessons.json";
@@ -47,13 +47,13 @@ export default async function Page() {
     throw new Error(
       "Your private library could not be loaded. Check Supabase setup.",
     );
-  const initialLessons = (history.data ?? []).map(
-    (row) => row.content as Lesson,
+  const initialLessons = (history.data ?? []).map((row) =>
+    lessonSchema.parse(row.content),
   );
   return (
     <StudyApp
       initialLessons={initialLessons}
-      initialState={progress.data?.data ?? emptyState}
+      initialState={progressSchema.parse(progress.data?.data ?? emptyState)}
       localDemo={false}
     />
   );

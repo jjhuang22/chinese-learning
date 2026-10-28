@@ -29,24 +29,26 @@ test("original lessons are ignored and absent from shipped browser JavaScript", 
   expect(
     execFileSync("git", ["ls-files", ".private"], { encoding: "utf8" }).trim(),
   ).toBe("");
+  const originals: { title: string }[] = JSON.parse(
+    await readFile(".private/original-lessons.json", "utf8"),
+  );
+  expect(
+    originals.length,
+    "Run npm run test:privacy to provide a build-time privacy fixture",
+  ).toBeGreaterThan(0);
+  let bundles = 0;
   async function scan(dir: string): Promise<void> {
     for (const entry of await readdir(dir, { withFileTypes: true })) {
       const file = path.join(dir, entry.name);
       if (entry.isDirectory()) await scan(file);
       else if (file.endsWith(".js")) {
         const source = await readFile(file, "utf8");
-        let originals: { title: string }[] = [];
-        try {
-          originals = JSON.parse(
-            await readFile(".private/original-lessons.json", "utf8"),
-          );
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-        }
+        bundles++;
         for (const original of originals)
           expect(source).not.toContain(original.title);
       }
     }
   }
   await scan(".next/static");
+  expect(bundles).toBeGreaterThan(0);
 });
