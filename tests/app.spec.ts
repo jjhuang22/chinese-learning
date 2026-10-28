@@ -12,6 +12,7 @@ test("pinyin can be revealed individually and all at once without duplicating pa
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   await expect(page.locator(".lesson-heading h1")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Show all pinyin" }),
@@ -43,6 +44,7 @@ test("saving a highlight updates the suggestions once, persists, and supports ar
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   await page
     .getByRole("button", { name: "Look up 觀望", exact: true })
     .first()
@@ -59,6 +61,7 @@ test("saving a highlight updates the suggestions once, persists, and supports ar
     suggestion.getByRole("button", { name: "Saved", exact: true }),
   ).toBeEnabled();
   await page.reload();
+  await openDailyLesson(page);
   await expect(
     suggestion.getByRole("button", { name: "Saved", exact: true }),
   ).toBeEnabled();
@@ -92,6 +95,7 @@ test("saved phrases can be unsaved from suggestions and the dialog, then saved a
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   const suggestion = page.locator(".suggestion-card").filter({
     has: page.getByRole("heading", { name: "觀望", exact: true }),
   });
@@ -103,6 +107,7 @@ test("saved phrases can be unsaved from suggestions and the dialog, then saved a
     suggestion.getByRole("button", { name: "Save flashcard", exact: true }),
   ).toHaveAttribute("aria-pressed", "false");
   await page.reload();
+  await openDailyLesson(page);
   await expect(
     suggestion.getByRole("button", { name: "Save flashcard", exact: true }),
   ).toBeEnabled();
@@ -129,6 +134,7 @@ test("saved phrases can be unsaved from suggestions and the dialog, then saved a
   ).toBeEnabled();
   await expect(phrase).not.toHaveClass(/word-saved/);
   await page.reload();
+  await openDailyLesson(page);
   await nav(page, "Review");
   await expect(page.locator(".deck-word")).toHaveCount(0);
   await nav(page, "Today");
@@ -144,6 +150,7 @@ test("arbitrary selected phrases become editable contextual cards", async ({
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   await page.evaluate(() => {
     const el = document.querySelector(".sentence")!;
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -188,6 +195,7 @@ test("arbitrary selected phrases become editable contextual cards", async ({
   );
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   await page.reload();
+  await openDailyLesson(page);
   await expect(manualHighlight).toHaveClass(/word-saved/);
   await nav(page, "Review");
   await expect(page.locator(".deck-word")).toContainText("群組");
@@ -196,6 +204,7 @@ test("review repeats kept cards once and ends; archive and reading progress pers
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   await page.getByRole("button", { name: "Mark as read", exact: true }).click();
   const card = page.locator(".suggestion-card").first();
   await card
@@ -239,6 +248,7 @@ test("suggestions share one approval state and bulk saving respects dismissals",
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   const count = await page.locator(".suggestion-card").count();
   const first = page.locator(".suggestion-card").first();
   await first
@@ -271,6 +281,7 @@ test("reader uses paragraphs with multiple inline sentences and removes ornament
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   const paragraph = page
     .locator(".reading-paragraph")
     .filter({ has: page.locator(".sentence") })
@@ -290,6 +301,7 @@ test("paste, preview, save, reload, library, pinyin, and card review pipeline", 
 }) => {
   const example = await readFile("public/example-lesson.json", "utf8");
   await page.goto("/");
+  await openDailyLesson(page);
   await page
     .getByRole("button", { name: "Import lesson", exact: true })
     .click();
@@ -320,6 +332,7 @@ test("paste, preview, save, reload, library, pinyin, and card review pipeline", 
     page.getByRole("region", { name: "Suggested cards", exact: true }),
   ).toBeVisible();
   await page.reload();
+  await openDailyLesson(page);
   await expect(page.locator(".lesson-heading h1")).toContainText("買得划算");
   await page
     .getByRole("button", { name: "Look up 湊單", exact: true })
@@ -347,6 +360,7 @@ test("invalid and duplicate imports are rejected without changing the lesson lib
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   await page
     .getByRole("button", { name: "Import lesson", exact: true })
     .click();
@@ -385,6 +399,7 @@ test("card bodies open context while save and dismiss keep their own actions", a
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   await expect(
     page.getByText("How did this feel?", { exact: true }),
   ).toHaveCount(0);
@@ -431,6 +446,7 @@ test("import paste field has a moderate default height and page content has bott
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   await page
     .getByRole("button", { name: "Import lesson", exact: true })
     .click();
@@ -492,6 +508,7 @@ test("review search accepts plain, accented, spaced, and numbered pinyin", async
     );
   });
   await page.goto("/");
+  await openDailyLesson(page);
   await nav(page, "Review");
   await expect(
     page.getByRole("button", { name: "Practice", exact: true }),
@@ -525,6 +542,7 @@ test("Archive unread count follows read status and persists after reload", async
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   const navigation = page.locator(
     (await page.locator(".mobile-nav").isVisible())
       ? ".mobile-nav"
@@ -535,6 +553,7 @@ test("Archive unread count follows read status and persists after reload", async
   await page.getByRole("button", { name: "Mark as read", exact: true }).click();
   await expect(archive).toContainText("1");
   await page.reload();
+  await openDailyLesson(page);
   await expect(archive).toContainText("1");
   await page.getByRole("button", { name: "Lesson read", exact: true }).click();
   await expect(archive).toContainText("2");
@@ -544,5 +563,12 @@ test("Archive unread count follows read status and persists after reload", async
   await page.getByRole("button", { name: "Mark as read", exact: true }).click();
   await expect(archive).toHaveText("Archive");
   await page.reload();
+  await openDailyLesson(page);
   await expect(archive).toHaveText("Archive");
 });
+async function openDailyLesson(page: import("@playwright/test").Page) {
+  const lesson = page.getByRole("button", {
+    name: /Read (daily lesson|lesson again)/,
+  });
+  if (await lesson.count()) await lesson.click();
+}

@@ -106,6 +106,7 @@ export function useProgress(
   }, [state, loaded, localDemo, retrySync, initialRevision, canEdit]);
 
   return {
+    loaded,
     state,
     setState,
     syncError,

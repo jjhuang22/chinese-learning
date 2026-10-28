@@ -2,6 +2,10 @@ import { z } from "zod";
 import { suggestionSchema } from "./model";
 export const progressSchema = z
   .object({
+    reviewedOn: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
     cards: z
       .array(
         suggestionSchema.extend({
@@ -9,6 +13,7 @@ export const progressSchema = z
           status: z.enum(["active", "archived"]),
           dueAt: z.number().int().nonnegative(),
           reviews: z.number().int().nonnegative(),
+          intervalDays: z.number().min(1).max(30).optional(),
           createdAt: z.number().int().nonnegative(),
         }),
       )

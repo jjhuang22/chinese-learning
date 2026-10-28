@@ -88,6 +88,7 @@ test("unlocked API scopes the library and progress to the configured learner, th
   expect(html).toContain("PRIVATE_LESSON_SENTINEL");
   expect(html).not.toContain("OTHER_LEARNER_SENTINEL");
   const state = {
+    reviewedOn: "2026-10-27",
     cards: [],
     dismissed: [],
     read: ["private-read-marker"],
@@ -152,6 +153,7 @@ test("reader creates cards, saves through the protected server API, and restores
     },
   ]);
   await page.goto("/");
+  await openDailyLesson(page);
   await expect(page.locator(".lesson-heading h1")).toContainText(
     "PRIVATE_LESSON_SENTINEL",
   );
@@ -168,6 +170,7 @@ test("reader creates cards, saves through the protected server API, and restores
     })
     .toBe(1);
   await page.reload();
+  await openDailyLesson(page);
   await expect(page.locator(".saved-card")).toHaveCount(1);
   await page
     .locator(".sidebar nav")
@@ -186,6 +189,7 @@ test("reader creates cards, saves through the protected server API, and restores
     ).status(),
   ).toBe(200);
   await page.reload();
+  await openDailyLesson(page);
   await expect(page.locator(".lesson-heading h1")).toContainText(
     "PRIVATE_LESSON_SENTINEL",
   );
@@ -253,6 +257,7 @@ test("opening a reader does not save; overlapping edits are saved in order", asy
     await route.continue();
   });
   await page.goto("/");
+  await openDailyLesson(page);
   await expect(page.locator(".lesson-heading h1")).toBeVisible();
   await page.waitForTimeout(750); // Exceed the 500 ms debounce to detect mount-only writes.
   expect(revisions).toEqual([]);
@@ -299,6 +304,7 @@ test("another device's save blocks stale UI edits and keeps them available to ex
     },
   ]);
   await page.goto("/");
+  await openDailyLesson(page);
   await expect(page.locator(".lesson-heading h1")).toBeVisible();
   const state = {
     cards: [],
@@ -359,6 +365,7 @@ for (const viewport of [
       },
     ]);
     await page.goto("/");
+    await openDailyLesson(page);
     await expect(
       page.getByRole("heading", { name: "No lessons yet" }),
     ).toBeVisible();
@@ -400,6 +407,7 @@ for (const viewport of [
       page.getByRole("button", { name: "Mark as read", exact: true }),
     ).toBeVisible();
     await page.reload();
+    await openDailyLesson(page);
     await expect(page.locator(".lesson-heading h1")).toContainText("買得划算");
     const archive = nav.getByRole("button", { name: /^Archive\b/ });
     await expect(archive).toHaveText(/Archive\s*(?:·\s*)?1$/);
@@ -435,6 +443,7 @@ test("keep reviewing retains a failed save, retries it, and persists both sessio
   ]);
   const headers = { Cookie: `everyday_session=${token}` };
   await page.goto("/");
+  await openDailyLesson(page);
   await page
     .locator(".suggestion-card")
     .first()
@@ -502,6 +511,7 @@ test("keep reviewing retains a failed save, retries it, and persists both sessio
     )
     .toBe(2);
   await page.reload();
+  await openDailyLesson(page);
   await page
     .locator(".sidebar nav")
     .getByRole("button", { name: /^Review/ })
@@ -532,7 +542,9 @@ test("missing revision metadata keeps the authenticated library readable without
     },
   ]);
   const response = await page.goto("/");
+  await openDailyLesson(page);
   expect(response?.status()).toBe(200);
+  await openDailyLesson(page);
   await expect(page.locator(".lesson-heading h1")).toContainText(
     "PRIVATE_LESSON_SENTINEL",
   );
@@ -558,6 +570,7 @@ test("missing revision metadata keeps the authenticated library readable without
   expect((await saved.json()).state.cards).toEqual([]);
   await request.post("http://127.0.0.1:4010/__reset");
   await page.reload();
+  await openDailyLesson(page);
   await expect(page.locator(".warning")).toHaveCount(0);
 });
 
@@ -621,6 +634,7 @@ test("public readers see lesson suggestions but never saved cards or personal pr
       writes++;
   });
   await page.goto("/");
+  await openDailyLesson(page);
   await expect(page.locator(".suggestion-card")).not.toHaveCount(0);
   await page
     .locator(".sidebar nav")
@@ -677,6 +691,7 @@ test("password enables editing and locking returns to public reading", async ({
   page,
 }) => {
   await page.goto("/");
+  await openDailyLesson(page);
   await page
     .getByRole("button", { name: "Enable editing", exact: true })
     .click();
@@ -693,6 +708,7 @@ test("password enables editing and locking returns to public reading", async ({
   await expect(
     page.getByRole("button", { name: "Lock editing", exact: true }),
   ).toBeVisible();
+  await openDailyLesson(page);
   await page
     .getByRole("button", { name: "Import lesson", exact: true })
     .click();
@@ -708,6 +724,7 @@ test("password enables editing and locking returns to public reading", async ({
   await expect(
     page.getByRole("button", { name: "Enable editing", exact: true }),
   ).toBeVisible();
+  await openDailyLesson(page);
   await expect(page.locator(".lesson-heading h1")).toContainText(
     "PRIVATE_LESSON_SENTINEL",
   );
@@ -731,6 +748,7 @@ test("expired editing access keeps reading available and pending changes survive
     },
   ]);
   await page.goto("/");
+  await openDailyLesson(page);
   let expireNext = true;
   await page.route("**/api/progress", async (route) => {
     if (route.request().method() === "PUT" && expireNext) {
@@ -775,3 +793,9 @@ test("expired editing access keeps reading available and pending changes survive
     })
     .toBe(1);
 });
+async function openDailyLesson(page: import("@playwright/test").Page) {
+  const lesson = page.getByRole("button", {
+    name: /Read (daily lesson|lesson again)/,
+  });
+  if (await lesson.count()) await lesson.click();
+}

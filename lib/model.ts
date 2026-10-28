@@ -40,9 +40,11 @@ export type Card = Suggestion & {
   status: "active" | "archived";
   dueAt: number;
   reviews: number;
+  intervalDays?: number;
   createdAt: number;
 };
 export type StudyState = {
+  reviewedOn?: string;
   cards: Card[];
   dismissed: string[];
   read: string[];
