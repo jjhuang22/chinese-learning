@@ -7,7 +7,18 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { BookOpen, Library, Layers, Check, Plus, X } from "lucide-react";
+import {
+  BookOpen,
+  Home,
+  Library,
+  Layers,
+  Check,
+  Plus,
+  X,
+  ArrowRight,
+} from "lucide-react";
+import DailyReview from "./daily-review";
+import { scheduleRecall } from "@/lib/daily-review";
 import Reader from "./reader";
 import Review from "./review";
 import LessonLibrary from "./lesson-library";
@@ -30,7 +41,7 @@ import { addCards, cardCollision } from "@/lib/cards";
 import { downloadJson } from "@/lib/download";
 import { PROGRESS_STORAGE } from "@/hooks/use-progress";
 import { useProgress } from "@/hooks/use-progress";
-type Page = "today" | "library" | "review";
+type Page = "home" | "today" | "library" | "review" | "daily-review";
 type Pick = { text: string; sentence: string };
 export default function StudyApp({
   initialLessons,
@@ -45,7 +56,7 @@ export default function StudyApp({
   initialRevision?: number | null;
   initialCanEdit?: boolean;
 }) {
-  const [page, setPage] = useState<Page>("today");
+  const [page, setPage] = useState<Page>("home");
   const [lessons, setLessons] = useState<Lesson[]>(initialLessons);
   const [lessonId, setLessonId] = useState(
     initialLessons.at(-1)?.id ?? "empty",
@@ -54,6 +65,7 @@ export default function StudyApp({
   const [editingAccess, setEditingAccess] = useState(false);
   const onAccessExpired = useCallback(() => setCanEdit(false), []);
   const {
+    loaded,
     state,
     setState: setProgress,
     syncError,
@@ -153,6 +165,9 @@ export default function StudyApp({
     ? lessons.filter((lesson) => !viewState.read.includes(lesson.id)).length
     : 0;
   const [now, setNow] = useState(() => Date.now());
+  const today = localDate(new Date(now));
+  const latestLesson = lessons.filter((l) => l.date <= today).at(-1);
+  const reviewDone = viewState.reviewedOn === today;
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(t);
@@ -313,8 +328,8 @@ export default function StudyApp({
       <aside className="sidebar">
         <button
           className="brand"
-          aria-label="Today"
-          onClick={() => navigate("today")}
+          aria-label="Home"
+          onClick={() => navigate("home")}
         >
           <span className="brand-mark" lang="zh-Hant">
             中
@@ -323,6 +338,7 @@ export default function StudyApp({
         <nav>
           {(
             [
+              { id: "home", label: "Home", icon: Home },
               { id: "today", label: "Today", icon: BookOpen },
               { id: "library", label: "Archive", icon: Library },
               { id: "review", label: "Review", icon: Layers },
@@ -350,11 +366,13 @@ export default function StudyApp({
       <main>
         <header className="topbar">
           <span className="breadcrumb">
-            {page === "today"
-              ? "Today"
-              : page === "library"
-                ? "Archive"
-                : "Review"}
+            {page === "home"
+              ? "Home"
+              : page === "today"
+                ? "Today"
+                : page === "library"
+                  ? "Archive"
+                  : "Review"}
           </span>
           <div className="topbar-right">
             {!localDemo && (
@@ -416,6 +434,138 @@ export default function StudyApp({
           </div>
         )}
         <div className="content" ref={reader}>
+          {page === "home" &&
+            (lessons.length === 0 ? (
+              emptyLessons
+            ) : (
+              <>
+                <span className="eyebrow">
+                  {new Date(today + "T12:00:00").toLocaleDateString("en-US", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </span>
+                <div className="page-heading">
+                  <h1>Your daily practice.</h1>
+                  <p>A little review, then something new to read.</p>
+                </div>
+                <div className="daily-activities">
+                  <section className="daily-activity">
+                    <Layers size={25} />
+                    <span className="eyebrow">01 · REINFORCE</span>
+                    <h2>Daily review</h2>
+                    <span className="activity-status">
+                      {!canEdit
+                        ? "Your personal practice"
+                        : reviewDone
+                          ? "Complete today ✓"
+                          : due.length
+                            ? "Ready for today"
+                            : "No words due"}
+                    </span>
+                    <p>
+                      {!canEdit
+                        ? "Unlock your saved vocabulary and daily progress with your editing password."
+                        : reviewDone
+                          ? "You’ve practiced today. Come back tomorrow for your next session."
+                          : due.length
+                            ? `Up to ${Math.min(8, due.length)} words · about 5 minutes. Start with sentence context, then mix your recall.`
+                            : active.length
+                              ? "Your words are scheduled for later. Keep reading today."
+                              : "Save a few words from a lesson to start your daily review."}
+                    </p>
+                    <button
+                      className="primary"
+                      disabled={
+                        canEdit && (!loaded || reviewDone || !due.length)
+                      }
+                      onClick={() =>
+                        canEdit ? navigate("daily-review") : requestEditing()
+                      }
+                    >
+                      {!canEdit
+                        ? "Unlock daily review"
+                        : reviewDone
+                          ? "Review complete"
+                          : "Start daily review"}
+                      <ArrowRight size={17} />
+                    </button>
+                    {canEdit && (
+                      <button
+                        className="text-button"
+                        onClick={() => navigate("review")}
+                      >
+                        Browse your words
+                      </button>
+                    )}
+                  </section>
+                  <section className="daily-activity">
+                    <BookOpen size={25} />
+                    <span className="eyebrow">02 · DISCOVER</span>
+                    <h2>Daily lesson</h2>
+                    <span className="activity-status">
+                      {latestLesson
+                        ? canEdit && viewState.read.includes(latestLesson.id)
+                          ? "Read ✓"
+                          : latestLesson.date === today
+                            ? "New today"
+                            : `Latest lesson · ${latestLesson.date}`
+                        : "No lesson yet"}
+                    </span>
+                    <p lang="zh-Hant">
+                      {latestLesson?.title ??
+                        "Import a lesson to begin reading."}
+                    </p>
+                    {latestLesson && latestLesson.date !== today && (
+                      <p className="muted">
+                        No new lesson for today yet. Your latest reading is
+                        ready.
+                      </p>
+                    )}
+                    <button
+                      className="secondary"
+                      disabled={!loaded || !latestLesson}
+                      onClick={() =>
+                        latestLesson && openLesson(latestLesson.id)
+                      }
+                    >
+                      {latestLesson && viewState.read.includes(latestLesson.id)
+                        ? "Read lesson again"
+                        : "Read daily lesson"}
+                      <ArrowRight size={17} />
+                    </button>
+                  </section>
+                </div>
+              </>
+            ))}
+          {page === "daily-review" &&
+            (canEdit && loaded ? (
+              <DailyReview
+                cards={viewState.cards}
+                lessons={lessons}
+                onHome={() => navigate("home")}
+                onResult={(id, recalled) =>
+                  setState((prev) => ({
+                    ...prev,
+                    cards: prev.cards.map((c) =>
+                      c.id === id ? scheduleRecall(c, recalled) : c,
+                    ),
+                  }))
+                }
+                onComplete={() =>
+                  setState((prev) => ({ ...prev, reviewedOn: localDate() }))
+                }
+              />
+            ) : (
+              <section className="empty-state">
+                <h1>Unlock your daily review</h1>
+                <p>Enable editing to continue your private practice.</p>
+                <button className="primary" onClick={requestEditing}>
+                  Unlock daily review
+                </button>
+              </section>
+            ))}
           {page === "today" &&
             (lessons.length === 0 ? (
               emptyLessons
@@ -470,6 +620,7 @@ export default function StudyApp({
       <nav className="mobile-nav">
         {(
           [
+            { id: "home", label: "Home", icon: Home },
             { id: "today", label: "Today", icon: BookOpen },
             { id: "library", label: "Archive", icon: Library },
             { id: "review", label: "Review", icon: Layers },

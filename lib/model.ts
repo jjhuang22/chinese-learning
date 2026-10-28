@@ -48,10 +48,12 @@ export const cardSchema = suggestionSchema.extend({
   status: z.enum(["active", "archived"]),
   dueAt: z.number().int().nonnegative(),
   reviews: z.number().int().nonnegative(),
+  intervalDays: z.number().min(1).max(30).optional(),
   createdAt: z.number().int().nonnegative(),
 });
 export const progressSchema = z
   .object({
+    reviewedOn: calendarDateSchema.optional(),
     cards: z.array(cardSchema).max(5000),
     dismissed: z.array(z.string()).max(20000),
     read: z.array(z.string()).max(20000),

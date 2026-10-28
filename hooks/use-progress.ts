@@ -143,6 +143,7 @@ export function useProgress(
     setStorageError("");
   }
   return {
+    loaded,
     state,
     setState,
     syncError,
