@@ -1,54 +1,109 @@
 "use client";
-import { useNow } from "./use-now";
-import { useCallback, useEffect, useState } from "react";
 import {
-  BookOpen,
-  Library,
-  Layers,
-  Plus,
-  Settings,
-  Check,
-  LogOut,
-} from "lucide-react";
-import Dialog from "./dialog";
-import ImportLesson from "./import-lesson";
-import ReaderScreen from "./reader-screen";
-import LibraryScreen from "./library-screen";
-import ReviewScreen from "./review-screen";
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
+import { BookOpen, Library, Layers, Check, Plus, X } from "lucide-react";
+import Reader from "./reader";
+import Review from "./review";
+import LessonLibrary from "./lesson-library";
 import CardDialog from "./card-dialog";
-import { useProgress, PROGRESS_STORAGE } from "./use-progress";
-import { addCards, cardCollision } from "@/lib/cards";
+import ImportLesson from "./import-lesson";
+import EditingAccess from "./editing-access";
+import { pinyin } from "pinyin-pro";
 import {
+  Card,
   emptyState,
   findCard,
+  Lesson,
+  localDate,
   lessonSchema,
   suggestionSchema,
-  localDate,
-  type Lesson,
-  type StudyState,
-  type Suggestion,
+  StudyState,
+  Suggestion,
 } from "@/lib/model";
+import { addCards, cardCollision } from "@/lib/cards";
 import { downloadJson } from "@/lib/download";
+import { PROGRESS_STORAGE } from "@/hooks/use-progress";
+import { useProgress } from "@/hooks/use-progress";
 type Page = "today" | "library" | "review";
-const navigation = [
-  { id: "today", label: "Today", icon: BookOpen },
-  { id: "library", label: "Library", icon: Library },
-  { id: "review", label: "Review", icon: Layers },
-] as const;
+type Pick = { text: string; sentence: string };
 export default function StudyApp({
   initialLessons,
   localDemo,
   initialState = emptyState,
+  initialRevision = 0,
+  initialCanEdit = false,
 }: {
   initialLessons: Lesson[];
   localDemo: boolean;
   initialState?: StudyState;
+  initialRevision?: number | null;
+  initialCanEdit?: boolean;
 }) {
   const [page, setPage] = useState<Page>("today");
   const [lessons, setLessons] = useState<Lesson[]>(initialLessons);
   const [lessonId, setLessonId] = useState(
     initialLessons.at(-1)?.id ?? "empty",
   );
+  const [canEdit, setCanEdit] = useState(localDemo || initialCanEdit);
+  const [editingAccess, setEditingAccess] = useState(false);
+  const onAccessExpired = useCallback(() => setCanEdit(false), []);
+  const {
+    state,
+    setState: setProgress,
+    syncError,
+    conflict,
+    retrySync,
+    storageError,
+    localBlocked,
+    resetLocalProgress,
+    hasPendingChanges,
+  } = useProgress(
+    initialState,
+    initialRevision,
+    localDemo,
+    canEdit,
+    onAccessExpired,
+  );
+  const viewState = canEdit ? state : emptyState;
+  function requestEditing() {
+    setEditingAccess(true);
+  }
+  const setState: Dispatch<SetStateAction<StudyState>> = (action) => {
+    if (!canEdit) {
+      requestEditing();
+      return;
+    }
+    setProgress(action);
+  };
+  function importLesson() {
+    if (!canEdit) {
+      requestEditing();
+      return;
+    }
+    setImporting(true);
+  }
+  const [locking, setLocking] = useState(false);
+  async function lockEditing() {
+    if (locking) return;
+    setLocking(true);
+    try {
+      if (hasPendingChanges() && !(await retrySync())) return;
+      const response = await fetch("/api/lock", { method: "POST" });
+      if (!response.ok) throw new Error();
+      window.location.reload();
+    } catch {
+      setNotice("Could not lock editing. Check your connection and try again.");
+    } finally {
+      setLocking(false);
+    }
+  }
+  const [lessonStorageError, setLessonStorageError] = useState("");
   useEffect(() => {
     if (!localDemo) return;
     try {
@@ -66,31 +121,22 @@ export default function StudyApp({
         }
       }
     } catch {
-      setStorageError("Local lessons could not be loaded.");
+      setLessonStorageError("Local lessons could not be loaded.");
     }
   }, [localDemo]);
-  const [modal, setModal] = useState<Suggestion | null>(null);
-  const [importing, setImporting] = useState(false);
-  const [settings, setSettings] = useState(false);
-  const [notice, setNotice] = useState("");
-  const [lessonStorageError, setStorageError] = useState("");
   const [cardError, setCardError] = useState("");
-  const returnToLock = useCallback(() => {
-    window.location.replace("/sign-in");
-  }, []);
-  const {
-    state,
-    setState,
-    flush,
-    syncError,
-    storageError,
-    blocked,
-    resetLocalProgress,
-  } = useProgress(initialState, localDemo, returnToLock);
-  function openCard(s: Suggestion) {
-    setCardError("");
-    setModal(s);
-  }
+  const [modal, setModal] = useState<Suggestion | null>(null);
+  const [selection, setSelection] = useState<Pick | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (!canEdit) {
+      setModal(null);
+      setSelection(null);
+      setImporting(false);
+    }
+  }, [canEdit]);
+  const reader = useRef<HTMLDivElement>(null);
   const lesson = lessons.find((l) => l.id === lessonId) ??
     lessons[lessons.length - 1] ?? {
       id: "empty",
@@ -101,17 +147,23 @@ export default function StudyApp({
       suggestions: [],
       notes: [],
     };
-  const now = useNow();
-  const due = state.cards.filter(
-    (c) => c.status === "active" && c.dueAt <= now,
-  );
+  const active = viewState.cards.filter((c) => c.status === "active");
+  const due = active.filter((c) => c.dueAt <= Date.now());
+  const unread = canEdit
+    ? lessons.filter((lesson) => !viewState.read.includes(lesson.id)).length
+    : 0;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
   useEffect(() => {
     if (localDemo) return;
     let live = true;
     const check = async () => {
       try {
         const response = await fetch("/api/session", { cache: "no-store" });
-        if (live && response.status === 401) returnToLock();
+        if (live && response.status === 401) setCanEdit(false);
       } catch {
         /* Keep unsaved work while offline. */
       }
@@ -129,9 +181,17 @@ export default function StudyApp({
     const t = setTimeout(() => setNotice(""), 4500);
     return () => clearTimeout(t);
   }, [notice]);
+  useEffect(() => {
+    setSelection(null);
+  }, [lessonId]);
+  function openCard(s: Suggestion) {
+    setCardError("");
+    setModal(s);
+  }
   const closeModal = useCallback(() => setModal(null), []);
   function navigate(next: Page) {
     setPage(next);
+    setSelection(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function openLesson(id: string) {
@@ -151,6 +211,10 @@ export default function StudyApp({
     return true;
   }
   function saveCard(s: Suggestion) {
+    if (!canEdit) {
+      requestEditing();
+      return;
+    }
     const found = findCard(state.cards, s.text);
     if (found) {
       setCardError(
@@ -165,36 +229,105 @@ export default function StudyApp({
     setNotice("Saved to your review deck");
     return true;
   }
-  async function retrySync() {
-    if (await flush()) setNotice("Your progress is synced.");
-  }
-  const [locking, setLocking] = useState(false);
-  async function lockApp() {
-    if (locking) return;
-    setLocking(true);
-    try {
-      if (!(await flush())) return;
-      const response = await fetch("/api/lock", { method: "POST" });
-      if (!response.ok) throw new Error();
-      returnToLock();
-    } catch {
-      setNotice("Could not lock the app. Check your connection and try again.");
-    } finally {
-      setLocking(false);
+  function unsaveCard(card: Card) {
+    if (!canEdit) {
+      requestEditing();
+      return;
     }
+    setState((prev) => ({
+      ...prev,
+      cards: prev.cards.filter((c) => c.id !== card.id),
+    }));
+    setNotice("Removed from your review deck");
   }
+  function captureSelection() {
+    if (page !== "today" || lessons.length === 0) return;
+    const sel = window.getSelection();
+    const text = sel?.toString().trim();
+    if (
+      !sel ||
+      !text ||
+      !reader.current?.contains(sel.anchorNode) ||
+      !reader.current?.contains(sel.focusNode)
+    )
+      return;
+    const a = sel.anchorNode?.parentElement?.closest("[data-sentence]");
+    const f = sel.focusNode?.parentElement?.closest("[data-sentence]");
+    if (!a || !f) return;
+    const context = a === f ? (a?.getAttribute("data-sentence") ?? text) : text;
+    setSelection({ text, sentence: context });
+  }
+  useEffect(() => {
+    const selected = () => {
+      const s = window.getSelection();
+      if (!s?.isCollapsed) captureSelection();
+    };
+    document.addEventListener("selectionchange", selected);
+    return () => document.removeEventListener("selectionchange", selected);
+  });
+  function createSelected() {
+    if (!canEdit) {
+      requestEditing();
+      return;
+    }
+    if (!selection) return;
+    const selected = selection;
+    setSelection(null);
+    window.getSelection()?.removeAllRanges();
+    const found =
+      findCard(state.cards, selected.text) ??
+      lesson.suggestions.find((s) => s.text === selected.text);
+    if (found) {
+      openCard(found);
+      return;
+    }
+    const draft: Suggestion = {
+      id: crypto.randomUUID(),
+      text: selected.text,
+      pinyin: pinyin(selected.text),
+      meaning: "",
+      sentence: selected.sentence,
+      kind: "vocabulary",
+    };
+    openCard(draft);
+  }
+  function exportProgress() {
+    downloadJson(
+      JSON.stringify(state, null, 2),
+      "everyday-chinese-progress.json",
+    );
+  }
+
+  const emptyLessons = (
+    <section className="empty-state">
+      <BookOpen size={34} />
+      <h1>No lessons yet</h1>
+      <p>Import a lesson to start reading.</p>
+      <button className="primary" onClick={importLesson}>
+        <Plus size={16} /> Import your first lesson
+      </button>
+    </section>
+  );
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="/" aria-label="Everyday Chinese home">
-          <span className="brand-mark">日</span>
-          <span>
-            日常<small>EVERYDAY CHINESE</small>
+        <button
+          className="brand"
+          aria-label="Today"
+          onClick={() => navigate("today")}
+        >
+          <span className="brand-mark" lang="zh-Hant">
+            中
           </span>
-        </a>
-
+        </button>
         <nav>
-          {navigation.map((item) => (
+          {(
+            [
+              { id: "today", label: "Today", icon: BookOpen },
+              { id: "library", label: "Archive", icon: Library },
+              { id: "review", label: "Review", icon: Layers },
+            ] as const
+          ).map((item) => (
             <button
               key={item.id}
               className={page === item.id ? "nav-active" : ""}
@@ -202,21 +335,17 @@ export default function StudyApp({
             >
               <item.icon size={19} />
               <span>{item.label}</span>
+              {item.id === "library" && unread > 0 && (
+                <span className="count" title="Unread lessons">
+                  {unread}
+                </span>
+              )}
               {item.id === "review" && due.length > 0 && (
                 <span className="count">{due.length}</span>
               )}
             </button>
           ))}
         </nav>
-        <div className="sidebar-bottom">
-          <button className="settings-button" onClick={() => setSettings(true)}>
-            <Settings size={17} /> Settings & account
-          </button>
-          <div className="connection">
-            <span className={!localDemo ? "dot connected" : "dot"} />
-            {!localDemo ? "Private cloud sync" : "Saved on this device"}
-          </div>
-        </div>
       </aside>
       <main>
         <header className="topbar">
@@ -224,33 +353,36 @@ export default function StudyApp({
             {page === "today"
               ? "Today"
               : page === "library"
-                ? "Library"
+                ? "Archive"
                 : "Review"}
           </span>
           <div className="topbar-right">
-            <button
-              aria-label="Open settings"
-              className="mobile-settings icon-button"
-              onClick={() => setSettings(true)}
-            >
-              <Settings size={20} />
-            </button>
+            {!localDemo && (
+              <button
+                className="text-button editing-trigger"
+                onClick={canEdit ? lockEditing : requestEditing}
+                disabled={locking}
+              >
+                {locking
+                  ? "Saving and locking…"
+                  : canEdit
+                    ? "Lock editing"
+                    : "Enable editing"}
+              </button>
+            )}
             <button
               className="text-button import-trigger"
-              onClick={() => setImporting(true)}
+              onClick={importLesson}
             >
               <Plus size={16} />
               Import lesson
             </button>
           </div>
         </header>
-        {lessonStorageError && (
-          <div className="warning">{lessonStorageError}</div>
-        )}
-        {storageError && (
+        {(storageError || lessonStorageError) && (
           <div className="warning">
-            {storageError}{" "}
-            {blocked && (
+            {storageError || lessonStorageError}
+            {localBlocked && (
               <>
                 <button
                   onClick={() => {
@@ -271,42 +403,78 @@ export default function StudyApp({
             )}
           </div>
         )}
-        {syncError && (
+        {(canEdit || hasPendingChanges()) && syncError && (
           <div className="warning">
-            {syncError} <button onClick={retrySync}>Retry sync</button>
+            {syncError}{" "}
+            {!canEdit ? (
+              <button onClick={requestEditing}>Enable editing</button>
+            ) : conflict || initialRevision === null ? (
+              <button onClick={exportProgress}>Export unsaved progress</button>
+            ) : (
+              <button onClick={retrySync}>Retry sync</button>
+            )}
           </div>
         )}
-        <div className="content">
-          {page === "today" && (
-            <ReaderScreen
-              key={lesson.id}
-              lesson={lesson}
-              state={state}
-              setState={setState}
-              saveCard={saveCard}
-              setModal={openCard}
-              setNotice={setNotice}
-            />
-          )}
-          {page === "library" && (
-            <LibraryScreen
-              lessons={lessons}
-              state={state}
-              openLesson={openLesson}
-            />
-          )}
-          {page === "review" && (
-            <ReviewScreen
-              state={state}
-              setState={setState}
-              setModal={openCard}
-              onRead={() => navigate("today")}
-            />
-          )}
+        <div className="content" ref={reader}>
+          {page === "today" &&
+            (lessons.length === 0 ? (
+              emptyLessons
+            ) : (
+              <Reader
+                key={lesson.id}
+                lesson={lesson}
+                state={viewState}
+                setState={setState}
+                setModal={openCard}
+                setNotice={setNotice}
+                saveCard={saveCard}
+                unsaveCard={unsaveCard}
+                captureSelection={captureSelection}
+                clearSelection={() => setSelection(null)}
+                canEdit={canEdit}
+                onRequestEditing={requestEditing}
+              />
+            ))}
+          {page === "library" &&
+            (lessons.length === 0 ? (
+              emptyLessons
+            ) : (
+              <LessonLibrary
+                lessons={lessons}
+                state={viewState}
+                openLesson={openLesson}
+                canEdit={canEdit}
+              />
+            ))}
+          {page === "review" &&
+            (canEdit ? (
+              <Review
+                state={viewState}
+                setState={setState}
+                setModal={openCard}
+                navigate={navigate}
+                now={now}
+              />
+            ) : (
+              <section className="empty-state">
+                <Layers size={34} />
+                <h1>Your review deck is private</h1>
+                <p>Enable editing to view saved cards and review progress.</p>
+                <button className="primary" onClick={requestEditing}>
+                  Enable editing
+                </button>
+              </section>
+            ))}
         </div>
       </main>
       <nav className="mobile-nav">
-        {navigation.map((item) => (
+        {(
+          [
+            { id: "today", label: "Today", icon: BookOpen },
+            { id: "library", label: "Archive", icon: Library },
+            { id: "review", label: "Review", icon: Layers },
+          ] as const
+        ).map((item) => (
           <button
             key={item.id}
             className={page === item.id ? "active" : ""}
@@ -315,29 +483,69 @@ export default function StudyApp({
             <item.icon size={21} />
             <span>
               {item.label}
+              {item.id === "library" && unread ? ` · ${unread}` : ""}
               {item.id === "review" && due.length ? ` · ${due.length}` : ""}
             </span>
           </button>
         ))}
       </nav>
+      {selection && (
+        <div
+          className="selection-bar"
+          role="region"
+          aria-label="Selected text actions"
+          onPointerDown={(e) => e.preventDefault()}
+        >
+          <span lang="zh-Hant">
+            {selection.text.length > 18
+              ? selection.text.slice(0, 18) + "…"
+              : selection.text}
+          </span>
+          <button onClick={createSelected}>
+            <Plus size={16} />
+            Create flashcard
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Cancel selection"
+            onClick={() => {
+              setSelection(null);
+              window.getSelection()?.removeAllRanges();
+            }}
+          >
+            <X size={17} />
+          </button>
+        </div>
+      )}
       {modal && (
         <CardDialog
           key={modal.id}
-          suggestion={findCard(state.cards, modal.text) ?? modal}
-          existing={findCard(state.cards, modal.text)}
+          suggestion={findCard(viewState.cards, modal.text) ?? modal}
+          existing={findCard(viewState.cards, modal.text)}
           error={cardError}
           onClose={closeModal}
+          canEdit={canEdit}
+          onRequestEditing={requestEditing}
           onSave={(s) => {
+            if (!canEdit) {
+              requestEditing();
+              return;
+            }
             if (saveCard(s)) setModal(null);
           }}
+          onUnsave={unsaveCard}
           onSource={() => {
-            const c = findCard(state.cards, modal.text);
+            const c = findCard(viewState.cards, modal.text);
             if (c) {
               openLesson(c.lessonId);
               setModal(null);
             }
           }}
           onUpdate={(s) => {
+            if (!canEdit) {
+              requestEditing();
+              return;
+            }
             if (!validateCard(s)) return;
             setState((prev) => ({
               ...prev,
@@ -350,7 +558,7 @@ export default function StudyApp({
           }}
         />
       )}
-      {importing && (
+      {importing && canEdit && (
         <ImportLesson
           localDemo={localDemo}
           existingDates={lessons.map((l) => l.date)}
@@ -370,66 +578,16 @@ export default function StudyApp({
           }}
         />
       )}
-      {settings && (
-        <Dialog title="Your daily practice" onClose={() => setSettings(false)}>
-          <div className="settings-section">
-            <span className="eyebrow">READING ROUTINE</span>
-            <h3>Import from ChatGPT</h3>
-            <p>
-              Traditional characters, Taiwan Mandarin. Two connected passages
-              with occasional variations in format.
-            </p>
-            <p className="muted">
-              Paste your ChatGPT lesson using Import lesson. No API key or
-              separate AI billing is needed. For custom cards, edit the
-              suggested pinyin and enter the meaning yourself.
-            </p>
-          </div>
-          <div className="settings-section">
-            <h3>Private access</h3>
-            {localDemo ? (
-              <p>This local prototype saves on this device.</p>
-            ) : (
-              <>
-                <p>
-                  This device stays unlocked for 30 days. Your lessons and cards
-                  sync privately to Supabase.
-                </p>
-                {syncError && <p role="alert">{syncError}</p>}
-                <button
-                  className="secondary"
-                  onClick={lockApp}
-                  disabled={locking}
-                >
-                  <LogOut size={16} />
-                  {locking ? "Saving and locking…" : "Lock this device"}
-                </button>
-              </>
-            )}
-          </div>
-          <div className="settings-section">
-            <h3>On your iPhone</h3>
-            <p>
-              Open the deployed website in Safari, then Share → Add to Home
-              Screen. Your passcode gives this device access to the same private
-              library.
-            </p>
-          </div>
-          <div className="settings-section">
-            <h3>Keep a backup</h3>
-            <button
-              className="secondary"
-              onClick={() => {
-                downloadJson(
-                  JSON.stringify(state, null, 2),
-                  "everyday-chinese-progress.json",
-                );
-              }}
-            >
-              Export progress
-            </button>
-          </div>
-        </Dialog>
+      {editingAccess && (
+        <EditingAccess
+          onClose={() => setEditingAccess(false)}
+          onUnlocked={() => {
+            if (hasPendingChanges()) {
+              setCanEdit(true);
+              setEditingAccess(false);
+            } else window.location.reload();
+          }}
+        />
       )}
       {notice && (
         <div className="toast" role="status">

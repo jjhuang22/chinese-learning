@@ -1,39 +1,42 @@
-import { useNow } from "./use-now";
-import { useState, type Dispatch, type SetStateAction } from "react";
+"use client";
 import {
-  Archive,
+  Layers,
   ArrowRight,
   Check,
-  CheckCheck,
   ChevronLeft,
-  Layers,
   RotateCcw,
+  Archive,
   Search,
+  CheckCheck,
 } from "lucide-react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import type { StudyState, Suggestion } from "@/lib/model";
-import { DAY, rateCard } from "@/lib/cards";
-export default function ReviewScreen({
+import { rateCard, DAY } from "@/lib/cards";
+import { matchesCardSearch } from "@/lib/card-search";
+import { createReviewSession } from "@/lib/review-session";
+export default function Review({
   state,
   setState,
   setModal,
-  onRead,
+  navigate,
+  now,
 }: {
   state: StudyState;
   setState: Dispatch<SetStateAction<StudyState>>;
-  setModal: (s: Suggestion) => void;
-  onRead: () => void;
+  setModal: (suggestion: Suggestion) => void;
+  navigate: (page: "today") => void;
+  now: number;
 }) {
+  const due = state.cards.filter(
+    (c) => c.status === "active" && c.dueAt <= Date.now(),
+  );
   const [filter, setFilter] = useState<"due" | "all" | "archived">("due");
   const [query, setQuery] = useState("");
   const [session, setSession] = useState<string[] | null>(null);
   const [cursor, setCursor] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const now = useNow();
-  const due = state.cards.filter(
-    (c) => c.status === "active" && c.dueAt <= now,
-  );
   function startSession() {
-    setSession(due.slice(0, 12).map((c) => c.id));
+    setSession(createReviewSession(due));
     setCursor(0);
     setFlipped(false);
   }
@@ -42,9 +45,7 @@ export default function ReviewScreen({
     const id = session[cursor];
     setState((prev) => ({
       ...prev,
-      cards: prev.cards.map((c) =>
-        c.id === id ? rateCard(c, archive, now) : c,
-      ),
+      cards: prev.cards.map((c) => (c.id === id ? rateCard(c, archive) : c)),
     }));
     if (!archive && session.filter((x) => x === id).length === 1)
       setSession((prev) => [...prev!, id]);
@@ -60,21 +61,9 @@ export default function ReviewScreen({
       : filter === "due"
         ? due
         : state.cards
-  ).filter((c) =>
-    `${c.text} ${c.pinyin} ${c.meaning}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
-  );
+  ).filter((c) => matchesCardSearch(c, query));
   return (
     <>
-      <span className="eyebrow">MAKE IT STICK</span>
-      <div className="page-heading">
-        <h1>
-          A little repetition.
-          <br />A lasting vocabulary.
-        </h1>
-        <p>Your words and patterns, with the context that made them matter.</p>
-      </div>
       {session ? (
         <section className="review-session">
           <div className="session-header">
@@ -156,14 +145,12 @@ export default function ReviewScreen({
         <>
           <div className="review-summary">
             <div>
-              <span className="eyebrow">READY WHEN YOU ARE</span>
               <h2>
-                {due.length} <span>cards to revisit</span>
+                {due.length}{" "}
+                <span>
+                  {due.length === 1 ? "card to review" : "cards to review"}
+                </span>
               </h2>
-              <p>
-                A short session. Up to 12 cards, plus a second look at the ones
-                you keep.
-              </p>
             </div>
             <button
               className="primary"
@@ -219,7 +206,7 @@ export default function ReviewScreen({
               <Search size={16} />
               <input
                 aria-label="Find a card"
-                placeholder="Find a word or pattern…"
+                placeholder="Find a word or phrase…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
@@ -228,40 +215,32 @@ export default function ReviewScreen({
           {!browse.length ? (
             <div className="empty-state">
               <Layers size={34} />
-              <h2>
-                {state.cards.length
-                  ? "Nothing here right now."
-                  : "Your vocabulary starts with a phrase."}
-              </h2>
+              {state.cards.length > 0 && <h2>Nothing here right now.</h2>}
               <p>
                 {state.cards.length
                   ? "Try another view, or return when cards are due."
                   : "Save an expression from a lesson, or select any phrase to create a card."}
               </p>
-              <button className="secondary" onClick={() => onRead()}>
+              <button className="secondary" onClick={() => navigate("today")}>
                 Return to reading <ArrowRight size={16} />
               </button>
             </div>
           ) : (
             <div className="deck-list">
               {browse.map((c) => (
-                <article key={c.id}>
+                <article
+                  key={c.id}
+                  onClick={(event) => {
+                    if (!(event.target as HTMLElement).closest("button"))
+                      setModal(c);
+                  }}
+                >
                   <button className="deck-word" onClick={() => setModal(c)}>
                     <span lang="zh-Hant">{c.text}</span>
                     <small>{c.pinyin}</small>
                   </button>
                   <span className="deck-meaning">{c.meaning}</span>
                   <div className="deck-actions">
-                    <button
-                      className="text-button"
-                      onClick={() => {
-                        setSession([c.id]);
-                        setCursor(0);
-                        setFlipped(false);
-                      }}
-                    >
-                      Practice
-                    </button>
                     {c.status === "archived" ? (
                       <button
                         className="text-button"

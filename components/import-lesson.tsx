@@ -112,7 +112,7 @@ export default function ImportLesson({
               ? "Saving…"
               : localDemo
                 ? "Save on this device"
-                : "Save to my library"}
+                : "Save to archive"}
           </button>
         </>
       ) : (
@@ -126,6 +126,7 @@ export default function ImportLesson({
           <textarea
             id="lesson-json"
             className="import-input"
+            rows={10}
             spellCheck={false}
             value={raw}
             onChange={(e) => {

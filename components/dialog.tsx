@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useId } from "react";
 import { X } from "lucide-react";
 export default function Dialog({
   title,
@@ -11,6 +11,7 @@ export default function Dialog({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     ref.current?.showModal();
     const prior = document.body.style.overflow;
@@ -21,9 +22,9 @@ export default function Dialog({
   }, []);
   return (
     <dialog
-      aria-label={title}
       ref={ref}
       className="dialog"
+      aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -34,7 +35,9 @@ export default function Dialog({
     >
       <div className="dialog-body">
         <div className="dialog-heading">
-          <span className="eyebrow">{title}</span>
+          <span className="eyebrow" id={titleId}>
+            {title}
+          </span>
           <button
             className="icon-button"
             aria-label="Close dialog"

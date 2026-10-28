@@ -2,23 +2,18 @@ import { test, expect } from "@playwright/test";
 import { readFile, readdir } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-test("deployed mode redirects before rendering lessons, even with LOCAL_DEMO enabled", async ({
+test("personal progress and writes stay protected even with forged demo cookies", async ({
   request,
 }) => {
-  for (const suffix of ["", "?_rsc=privacy"]) {
-    const response = await request.get("/" + suffix, {
-      maxRedirects: 0,
-      headers: { Cookie: "sb-test-auth-token=forged; LOCAL_DEMO=1" },
-    });
-    expect(response.status()).toBe(307);
-    expect(response.headers().location).toContain("/sign-in");
-    const html = await response.text();
-    expect(html).not.toContain("reading-paragraph");
-    expect(response.headers()["cache-control"]).toContain("no-store");
-  }
+  const headers = { Cookie: "sb-test-auth-token=forged; LOCAL_DEMO=1" };
+  const progress = await request.get("/api/progress", { headers });
+  expect(progress.status()).toBe(401);
+  expect(progress.headers()["cache-control"]).toContain("no-store");
+  const imported = await request.post("/api/import", { headers, data: {} });
+  expect(imported.status()).toBe(401);
   const login = await request.get("/sign-in");
   expect(login.status()).toBe(200);
-  expect(await login.text()).toContain("Unlock your lessons");
+  expect(await login.text()).toContain("Enable editing");
 });
 test("original lessons are ignored and absent from shipped browser JavaScript", async () => {
   expect(

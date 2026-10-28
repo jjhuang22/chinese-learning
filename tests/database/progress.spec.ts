@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { ProgressSaver } from "../../lib/progress-save";
+import { ProgressSync } from "../../lib/progress-sync";
 import { addCards, cardCollision, rateCard, DAY } from "../../lib/cards";
 import {
   emptyState,
@@ -21,42 +21,44 @@ function deferred() {
 test("progress saves skip initial snapshots, serialize writes, and flush the newest change", async () => {
   const gate = deferred();
   const writes: StudyState[] = [];
-  const saver = new ProgressSaver(emptyState, async (state) => {
+  const saver = new ProgressSync(emptyState, 0, async (state, revision) => {
     writes.push(state);
     if (writes.length === 1) await gate.promise;
+    return revision + 1;
   });
-  await saver.flush();
+  await saver.save();
   expect(writes).toHaveLength(0);
   const first = { ...emptyState, read: ["first"] };
   const middle = { ...emptyState, read: ["middle"] };
   const latest = { ...emptyState, read: ["latest"] };
   saver.update(first);
-  const initialSave = saver.flush();
+  const initialSave = saver.save();
   saver.update(middle);
   saver.update(latest);
-  const lockFlush = saver.flush();
+  const lockFlush = saver.save();
   expect(writes).toEqual([first]);
-  expect(saver.dirty).toBe(true);
+  expect(saver.hasPendingChanges()).toBe(true);
   gate.resolve();
   await Promise.all([initialSave, lockFlush]);
   expect(writes).toEqual([first, latest]);
-  expect(saver.dirty).toBe(false);
+  expect(saver.hasPendingChanges()).toBe(false);
 });
 test("failed saves remain dirty and can be retried", async () => {
   let fail = true;
   const writes: StudyState[] = [];
-  const saver = new ProgressSaver(emptyState, async (state) => {
+  const saver = new ProgressSync(emptyState, 0, async (state, revision) => {
     if (fail) throw new Error("Offline");
     writes.push(state);
+    return revision + 1;
   });
   const state = { ...emptyState, read: ["unsaved"] };
   saver.update(state);
-  await expect(saver.flush()).rejects.toThrow("Offline");
-  expect(saver.dirty).toBe(true);
+  await expect(saver.save()).rejects.toThrow("Offline");
+  expect(saver.hasPendingChanges()).toBe(true);
   fail = false;
-  await saver.flush();
+  await saver.save();
   expect(writes).toEqual([state]);
-  expect(saver.dirty).toBe(false);
+  expect(saver.hasPendingChanges()).toBe(false);
 });
 test("bulk adds and edit collisions use the same normalized card identity", () => {
   const suggestion: Suggestion = {

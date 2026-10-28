@@ -1,26 +1,40 @@
-import { useState } from "react";
-import { ArrowUpRight, Check, Plus } from "lucide-react";
+"use client";
+import { useState, useEffect } from "react";
 import Dialog from "./dialog";
 import type { Card, Suggestion } from "@/lib/model";
+import { ArrowUpRight, Check, Plus } from "lucide-react";
 export default function CardDialog({
   suggestion,
   existing,
+  error,
   onClose,
   onSave,
   onUpdate,
-  error,
+  onUnsave,
   onSource,
+  canEdit,
+  onRequestEditing,
 }: {
   suggestion: Suggestion;
   existing?: Card;
+  error: string;
   onClose: () => void;
   onSave: (s: Suggestion) => void;
   onUpdate: (s: Suggestion) => void;
+  onUnsave: (card: Card) => void;
   onSource: () => void;
-  error: string;
+  canEdit: boolean;
+  onRequestEditing: () => void;
 }) {
   const [draft, setDraft] = useState(suggestion);
   const [editing, setEditing] = useState(!suggestion.meaning);
+  useEffect(() => {
+    setDraft((prev) => ({
+      ...prev,
+      pinyin: suggestion.pinyin,
+      meaning: suggestion.meaning,
+    }));
+  }, [suggestion.pinyin, suggestion.meaning]);
   return (
     <Dialog
       title={
@@ -104,13 +118,26 @@ export default function CardDialog({
             {draft.sentence}
           </blockquote>
           <div className="dialog-actions">
-            <button className="text-button" onClick={() => setEditing(true)}>
+            <button
+              className="text-button"
+              onClick={() => {
+                if (!canEdit) {
+                  onRequestEditing();
+                  return;
+                }
+                setEditing(true);
+              }}
+            >
               Edit card
             </button>
             <button
               className={existing ? "secondary" : "primary"}
-              disabled={Boolean(existing)}
-              onClick={() => onSave(draft)}
+              disabled={existing?.status === "archived"}
+              aria-pressed={Boolean(existing)}
+              title={
+                existing?.status === "active" ? "Remove from review" : undefined
+              }
+              onClick={() => (existing ? onUnsave(existing) : onSave(draft))}
             >
               {existing ? <Check size={17} /> : <Plus size={17} />}{" "}
               {existing
@@ -120,6 +147,11 @@ export default function CardDialog({
                 : "Save flashcard"}
             </button>
           </div>
+          {existing?.status === "active" && (
+            <p className="muted">
+              Click “Saved to review” again to remove this card.
+            </p>
+          )}
           {existing && (
             <button className="source-link" onClick={onSource}>
               Return to original lesson <ArrowUpRight size={14} />

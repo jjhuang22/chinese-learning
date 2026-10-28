@@ -35,7 +35,8 @@ export const lessonSchema = z.object({
           .min(3),
       }),
     )
-    .length(2),
+    .min(2)
+    .max(3),
   suggestions: z.array(suggestionSchema).min(3),
   notes: z.array(z.object({ title: z.string(), text: z.string() })),
 });
