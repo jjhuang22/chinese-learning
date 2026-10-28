@@ -52,11 +52,11 @@ Demo servers are for trusted local use. The commands bind to all network interfa
 
 ## Reading and review
 
-- Home has **Daily review** and **Daily lesson** buttons. Daily review draws up to ten random active cards, with characters/pinyin first and meaning/context on reveal. Choose **Next** to continue; there is no typing or scoring. Completion follows the America/New_York calendar day and syncs through the existing private progress endpoint. The Review tab remains available for extra practice and card management. Public readers unlock daily review with the editing password.
+- Home has **Daily review** and **Daily lesson** buttons. Daily review draws up to ten random active cards, with characters/pinyin first and meaning/context on reveal. Choose **Next** to continue; there is no typing or scoring. Completion follows the America/New_York calendar day and syncs through the existing private progress endpoint. The Review tab has one **Start review** button for random active cards, plus **Active**, **Archived**, and **All** filters for card management. Public readers unlock daily review with the editing password.
 - Read two or three related passages per lesson. Pinyin starts on; turn off Show all pinyin to reveal individual sentences by tapping.
 - Tap highlighted vocabulary for contextual meaning. Save suggestions individually or in bulk; dismissed suggestions stay out of bulk saves.
 - Select another phrase to create a card with dictionary-generated pinyin and a meaning you enter. Manually saved phrases receive the same accepted-vocabulary highlighting in their source lesson. Card identity ignores spacing and common punctuation.
-- Review a shuffled selection of up to 12 due cards. **Keep reviewing** requeues a card once per session and schedules another review in 1–7 days. **Understand already** archives it; an optional refresher becomes available after 30 days.
+- Review a shuffled selection of up to 12 active cards. **Keep reviewing** requeues a card once per session and schedules another review in 1–7 days. **Understand already** archives it; an optional refresher becomes available after 30 days.
 - Browse, edit, archive, or restore cards. Mark lessons read.
 
 Lessons are stored individually in `lessons`. Cards, dismissed suggestions, read markers, and feedback share one JSON document in `learner_state`. Cloud saves happen after edits, one request at a time. Locking waits for pending changes; closing a tab with unsaved progress prompts you to stay. A revision check rejects stale saves from another tab/device. If a conflict appears, use **Export unsaved progress** in the conflict warning before reloading; conflicts are not merged automatically.

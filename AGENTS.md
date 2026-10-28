@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Interface preferences
 
-- Keep UI labels and copy plain and minimal. Avoid motivational taglines, decorative icons, numbered section labels, and explanatory copy where a label and button suffice.
+- Keep UI copy brief and functional. Avoid motivational taglines, numbered section labels, and unnecessary explanations. Preserve visual structure such as boxed sections and icons; minimal wording does not mean stripping the design.
 - Use the same color for comparable action buttons, including Daily review and Daily lesson.
 
 ## Validation requirements

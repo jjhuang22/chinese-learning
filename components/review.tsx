@@ -27,16 +27,14 @@ export default function Review({
   navigate: (page: "today") => void;
   now: number;
 }) {
-  const due = state.cards.filter(
-    (c) => c.status === "active" && c.dueAt <= Date.now(),
-  );
-  const [filter, setFilter] = useState<"due" | "all" | "archived">("due");
+  const active = state.cards.filter((c) => c.status === "active");
+  const [filter, setFilter] = useState<"active" | "archived" | "all">("active");
   const [query, setQuery] = useState("");
   const [session, setSession] = useState<string[] | null>(null);
   const [cursor, setCursor] = useState(0);
   const [flipped, setFlipped] = useState(false);
   function startSession() {
-    setSession(createReviewSession(due));
+    setSession(createReviewSession(active));
     setCursor(0);
     setFlipped(false);
   }
@@ -58,8 +56,8 @@ export default function Review({
   const browse = (
     filter === "archived"
       ? state.cards.filter((c) => c.status === "archived")
-      : filter === "due"
-        ? due
+      : filter === "active"
+        ? active
         : state.cards
   ).filter((c) => matchesCardSearch(c, query));
   return (
@@ -146,35 +144,20 @@ export default function Review({
           <div className="review-summary">
             <div>
               <h2>
-                {due.length}{" "}
+                {active.length}{" "}
                 <span>
-                  {due.length === 1 ? "card to review" : "cards to review"}
+                  {active.length === 1 ? "active card" : "active cards"}
                 </span>
               </h2>
             </div>
             <button
               className="primary"
-              disabled={!due.length}
+              disabled={!active.length}
               onClick={startSession}
             >
               Start review <ArrowRight size={18} />
             </button>
           </div>
-          <button
-            className="primary"
-            disabled={!state.cards.some((card) => card.status === "active")}
-            onClick={() => {
-              setSession(
-                createReviewSession(
-                  state.cards.filter((card) => card.status === "active"),
-                ),
-              );
-              setCursor(0);
-              setFlipped(false);
-            }}
-          >
-            Extra practice
-          </button>
           {state.cards.some(
             (c) => c.status === "archived" && c.dueAt <= now,
           ) && (
@@ -203,15 +186,16 @@ export default function Review({
             <div className="tabs">
               {(
                 [
-                  { id: "due", label: "Due" },
-                  { id: "all", label: "Browse all" },
-                  { id: "archived", label: "Archive" },
+                  { id: "active", label: "Active" },
+                  { id: "archived", label: "Archived" },
+                  { id: "all", label: "All" },
                 ] as const
               ).map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setFilter(t.id)}
                   className={filter === t.id ? "active" : ""}
+                  aria-pressed={filter === t.id}
                 >
                   {t.label}
                 </button>
@@ -233,7 +217,7 @@ export default function Review({
               {state.cards.length > 0 && <h2>Nothing here right now.</h2>}
               <p>
                 {state.cards.length
-                  ? "Try another view, or return when cards are due."
+                  ? "Try another filter or search."
                   : "Save an expression from a lesson, or select any phrase to create a card."}
               </p>
               <button className="secondary" onClick={() => navigate("today")}>

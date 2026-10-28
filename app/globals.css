@@ -1592,7 +1592,10 @@ main {
   flex-direction: column;
   align-items: flex-start;
   gap: 18px;
-  padding: 24px 0;
+  padding: 28px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 10px;
 }
 .daily-activity h1,
 .daily-activity h2 {
@@ -1610,7 +1613,10 @@ main {
 @media (max-width: 760px) {
   .daily-activities {
     grid-template-columns: 1fr;
-    gap: 0;
+    gap: 18px;
+  }
+  .daily-activity {
+    padding: 22px;
   }
 }
 .import-label {

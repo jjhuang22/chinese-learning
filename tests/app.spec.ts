@@ -67,7 +67,7 @@ test("saving a highlight updates the suggestions once, persists, and supports ar
   ).toBeEnabled();
   await nav(page, "Review");
   await expect(
-    page.getByRole("heading", { name: "1 card to review" }),
+    page.getByRole("heading", { name: "1 active card" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Start review" }).click();
   await expect(page.locator(".card-answer")).toHaveCount(0);
@@ -84,11 +84,11 @@ test("saving a highlight updates the suggestions once, persists, and supports ar
   await page.getByRole("button", { name: "Back to your cards" }).click();
   await page
     .locator(".deck-toolbar")
-    .getByRole("button", { name: "Archive", exact: true })
+    .getByRole("button", { name: "Archived", exact: true })
     .click();
   await expect(page.locator(".deck-word")).toContainText("觀望");
   await page.getByRole("button", { name: "Restore", exact: true }).click();
-  await page.getByRole("button", { name: "Due", exact: true }).click();
+  await page.getByRole("button", { name: "Active", exact: true }).click();
   await expect(page.locator(".deck-word")).toContainText("觀望");
 });
 test("saved phrases can be unsaved from suggestions and the dialog, then saved again", async ({

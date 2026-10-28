@@ -518,7 +518,7 @@ test("keep reviewing retains a failed save, retries it, and persists both sessio
     .locator(".sidebar nav")
     .getByRole("button", { name: /^Review/ })
     .click();
-  await page.getByRole("button", { name: "Browse all", exact: true }).click();
+  await page.getByRole("button", { name: "All", exact: true }).click();
   await expect(page.locator(".deck-list article")).toHaveCount(1);
   await expect(page.locator(".warning")).toHaveCount(0);
 });

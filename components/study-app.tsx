@@ -432,6 +432,7 @@ export default function StudyApp({
               <>
                 <div className="daily-activities">
                   <section className="daily-activity">
+                    <Layers size={25} aria-hidden="true" />
                     <h1>Daily review</h1>
                     <button
                       className="primary"
@@ -450,6 +451,7 @@ export default function StudyApp({
                     </button>
                   </section>
                   <section className="daily-activity">
+                    <BookOpen size={25} aria-hidden="true" />
                     <h2>Daily lesson</h2>
                     <button
                       className="primary"

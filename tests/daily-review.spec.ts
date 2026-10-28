@@ -67,11 +67,14 @@ test("simple Home and flashcard-only daily review persist completion", async ({
   );
   await page.goto("/");
   await expect(
-    page.locator(
-      ".daily-activities svg, .daily-activities p, .daily-activities .eyebrow",
-    ),
+    page.locator(".daily-activities p, .daily-activities .eyebrow"),
   ).toHaveCount(0);
   await expect(page.locator(".daily-activities .primary")).toHaveCount(2);
+  await expect(page.locator(".daily-activities svg")).toHaveCount(2);
+  await expect(page.locator(".daily-activity").first()).toHaveCSS(
+    "border-top-style",
+    "solid",
+  );
   await page
     .getByRole("button", { name: "Start daily review", exact: true })
     .click();
@@ -115,9 +118,16 @@ test("simple Home and flashcard-only daily review persist completion", async ({
       : ".sidebar nav",
   );
   await navigation.getByRole("button", { name: /^Review/ }).click();
-  await page
-    .getByRole("button", { name: "Extra practice", exact: true })
-    .click();
+  await expect(
+    page.getByRole("button", { name: "Extra practice", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator(".deck-word")).toHaveCount(2);
+  await page.getByRole("button", { name: "Archived", exact: true }).click();
+  await expect(page.locator(".deck-word")).toHaveCount(0);
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  await expect(page.locator(".deck-word")).toHaveCount(2);
+  await page.getByRole("button", { name: "Active", exact: true }).click();
+  await page.getByRole("button", { name: "Start review", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Reveal meaning", exact: true }),
   ).toBeVisible();
