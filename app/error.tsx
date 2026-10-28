@@ -1,9 +1,9 @@
 "use client";
-export default function LibraryError({ retry }: { retry: () => void }) {
+export default function ArchiveError({ retry }: { retry: () => void }) {
   return (
     <main className="sign-in-page">
       <section className="sign-in-card">
-        <h1>Your library could not be loaded</h1>
+        <h1>Your archive could not be loaded</h1>
         <p>
           Your saved data has been kept. Try again. If this continues, check the
           database connection and saved lesson/progress format.

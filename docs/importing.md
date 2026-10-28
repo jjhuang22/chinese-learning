@@ -7,7 +7,7 @@ The external document has exactly these keys:
 | Key             | Type   | Rules                                        |
 | --------------- | ------ | -------------------------------------------- |
 | `schemaVersion` | number | Exactly 1                                    |
-| `date`          | string | Real YYYY-MM-DD date, unique in your library |
+| `date`          | string | Real YYYY-MM-DD date, unique in your archive |
 | `title`         | string | Traditional-Chinese theme/title              |
 | `passages`      | array  | Two or three passages                        |
 | `suggestions`   | array  | 3–60 vocabulary/grammar suggestions          |

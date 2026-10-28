@@ -211,9 +211,9 @@ test("review repeats kept cards once and ends; archive and reading progress pers
     .getByRole("button", { name: "Save flashcard", exact: true })
     .click();
   await nav(page, "Archive");
-  await expect(page.locator(".library-lesson")).toHaveCount(2);
-  await expect(page.locator(".library-lesson").first()).toContainText("Read");
-  await page.locator(".library-lesson").first().click();
+  await expect(page.locator(".archive-lesson")).toHaveCount(2);
+  await expect(page.locator(".archive-lesson").first()).toContainText("Read");
+  await page.locator(".archive-lesson").first().click();
   await expect(
     page.getByRole("button", { name: "Lesson read", exact: true }),
   ).toBeVisible();
@@ -296,7 +296,7 @@ test("reader uses paragraphs with multiple inline sentences and removes ornament
   ).toHaveCount(0);
 });
 
-test("paste, preview, save, reload, library, pinyin, and card review pipeline", async ({
+test("paste, preview, save, reload, archive, pinyin, and card review pipeline", async ({
   page,
 }) => {
   const example = await readFile("public/example-lesson.json", "utf8");
@@ -343,8 +343,8 @@ test("paste, preview, save, reload, library, pinyin, and card review pipeline", 
     .getByRole("button", { name: "Save flashcard", exact: true })
     .click();
   await nav(page, "Archive");
-  await expect(page.locator(".library-lesson")).toHaveCount(3);
-  await page.locator(".library-lesson").first().click();
+  await expect(page.locator(".archive-lesson")).toHaveCount(3);
+  await page.locator(".archive-lesson").first().click();
   await expect(
     page.getByRole("button", { name: "Show all pinyin", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -356,7 +356,7 @@ test("paste, preview, save, reload, library, pinyin, and card review pipeline", 
     .click();
   await expect(page.locator(".card-answer")).toContainText("Combine purchases");
 });
-test("invalid and duplicate imports are rejected without changing the lesson library", async ({
+test("invalid and duplicate imports are rejected without changing the lesson archive", async ({
   page,
 }) => {
   await page.goto("/");
@@ -392,7 +392,7 @@ test("invalid and duplicate imports are rejected without changing the lesson lib
   );
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   await nav(page, "Archive");
-  await expect(page.locator(".library-lesson")).toHaveCount(2);
+  await expect(page.locator(".archive-lesson")).toHaveCount(2);
 });
 
 test("card bodies open context while save and dismiss keep their own actions", async ({
@@ -559,7 +559,7 @@ test("Archive unread count follows read status and persists after reload", async
   await expect(archive).toContainText("2");
   await page.getByRole("button", { name: "Mark as read", exact: true }).click();
   await archive.click();
-  await page.locator(".library-lesson").filter({ hasText: "Unread" }).click();
+  await page.locator(".archive-lesson").filter({ hasText: "Unread" }).click();
   await page.getByRole("button", { name: "Mark as read", exact: true }).click();
   await expect(archive).toHaveText("Archive");
   await page.reload();
@@ -621,4 +621,116 @@ test("editing a card cannot collide with another saved expression", async ({
     "not already saved",
   );
   await expect(page.getByRole("dialog")).toBeVisible();
+});
+
+test("archive compacts multiple years and months, filters unread lessons, and remembers the return position", async ({
+  page,
+}) => {
+  const samples = JSON.parse(await readFile("lib/sample-lessons.json", "utf8"));
+  const history = Array.from({ length: 43 }, (_, index) => {
+    const date = new Date(Date.UTC(2026, 9 - index, 15))
+      .toISOString()
+      .slice(0, 10);
+    return {
+      ...samples[0],
+      id: `history-${date}`,
+      date,
+      title: `Lesson ${date}`,
+    };
+  });
+  // Current month is read; unread lessons span two older years.
+  const unreadIds = ["history-2026-09-15", "history-2024-05-15"];
+  const read = [...samples, ...history]
+    .filter((lesson) => !unreadIds.includes(lesson.id))
+    .map((lesson) => lesson.id);
+  await page.addInitScript(
+    ({ history, read }) => {
+      localStorage.setItem(
+        "everyday-chinese-imports-v1",
+        JSON.stringify(history),
+      );
+      localStorage.setItem(
+        "everyday-chinese-v1",
+        JSON.stringify({ cards: [], dismissed: [], read, feedback: {} }),
+      );
+    },
+    { history, read },
+  );
+  await page.goto("/");
+  await nav(page, "Archive");
+  await expect(page.locator(".breadcrumb")).toHaveText("Archive");
+  await expect(page.locator(".archive-year")).toHaveCount(4);
+  const year2026 = page.getByRole("button", { name: /^2026 / });
+  const year2025 = page.getByRole("button", { name: /^2025 / });
+  await expect(year2026).toHaveAttribute("aria-expanded", "true");
+  await expect(year2025).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("button", { name: /^October / })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await expect(
+    page.getByRole("button", { name: /^September / }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator(".archive-lesson:visible")).toHaveCount(3);
+  await expect(page.locator(".archive-lesson:visible").last()).toContainText(
+    "Lesson 2026-10-15",
+  );
+  // Opening an older year reveals its month headings, all initially collapsed.
+  await year2025.click();
+  const olderYear = page.locator(".archive-year").filter({ has: year2025 });
+  await expect(olderYear.locator(".archive-month")).toHaveCount(12);
+  await expect(olderYear.locator(".archive-lesson:visible")).toHaveCount(0);
+  const january = olderYear.getByRole("button", { name: /^January / });
+  await january.click();
+  const olderLesson = olderYear.locator(".archive-lesson");
+  await olderLesson.scrollIntoViewIfNeeded();
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  expect(scrollBefore).toBeGreaterThan(0);
+  await olderLesson.click();
+  await expect(page.locator(".lesson-heading h1")).toHaveText(
+    "Lesson 2025-01-15",
+  );
+  await nav(page, "Archive");
+  await expect(year2025).toHaveAttribute("aria-expanded", "true");
+  await expect(january).toHaveAttribute("aria-expanded", "true");
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeCloseTo(scrollBefore, 0);
+
+  await page.getByRole("checkbox", { name: "Unread only" }).check();
+  await expect(page.locator(".archive-year")).toHaveCount(2);
+  await expect(page.locator(".archive-summary")).toContainText(
+    "2 unread lessons",
+  );
+  await expect(
+    page.getByRole("button", { name: /^September / }),
+  ).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("button", { name: /^October / })).toHaveCount(0);
+  await expect(page.locator(".archive-lesson:visible")).toHaveCount(1);
+  await page.locator(".archive-lesson:visible").click();
+  await page.getByRole("button", { name: "Mark as read", exact: true }).click();
+  await nav(page, "Archive");
+  await expect(
+    page.getByRole("checkbox", { name: "Unread only" }),
+  ).toBeChecked();
+  await expect(page.locator(".archive-year")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: /^2024 / })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await expect(
+    page.getByRole("button", { name: "May 1 unread lesson", exact: true }),
+  ).toHaveAttribute("aria-expanded", "true");
+  await page.locator(".archive-lesson:visible").click();
+  await page.getByRole("button", { name: "Mark as read", exact: true }).click();
+  await nav(page, "Archive");
+  await expect(page.getByRole("status")).toContainText("No unread lessons");
+  await page.getByRole("checkbox", { name: "Unread only" }).uncheck();
+  await expect(page.locator(".archive-year")).toHaveCount(4);
+  await expect(page.locator(".archive-lesson:visible")).toHaveCount(3);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });

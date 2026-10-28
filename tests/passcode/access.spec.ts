@@ -77,7 +77,7 @@ test("wrong passcodes are limited persistently without exposing a session", asyn
   expect(limited.status()).toBe(429);
   expect(limited.headers()["retry-after"]).toBe("900");
 });
-test("unlocked API scopes the library and progress to the configured learner, then locks", async ({
+test("unlocked API scopes the archive and progress to the configured learner, then locks", async ({
   request,
 }) => {
   const token = await unlock(request);
@@ -414,8 +414,8 @@ for (const viewport of [
     const archive = nav.getByRole("button", { name: /^Archive\b/ });
     await expect(archive).toHaveText(/Archive\s*(?:·\s*)?1$/);
     await archive.click();
-    await expect(page.locator(".library-summary")).toContainText("1 lesson");
-    await expect(page.locator(".library-summary")).toContainText("0 read");
+    await expect(page.locator(".archive-summary")).toContainText("1 lesson");
+    await expect(page.locator(".archive-summary")).toContainText("0 read");
     const progress = await request.get("/api/progress", {
       headers: { Cookie: `everyday_session=${token}` },
     });
@@ -523,7 +523,7 @@ test("keep reviewing retains a failed save, retries it, and persists both sessio
   await expect(page.locator(".warning")).toHaveCount(0);
 });
 
-test("missing revision metadata keeps the authenticated library readable without unsafe saves", async ({
+test("missing revision metadata keeps the authenticated archive readable without unsafe saves", async ({
   request,
   page,
 }) => {
@@ -643,8 +643,11 @@ test("public readers see lesson suggestions but never saved cards or personal pr
     .getByRole("button", { name: "Archive", exact: true })
     .click();
   await expect(page.locator(".read-status")).toHaveCount(0);
-  await expect(page.locator(".library-summary")).not.toContainText("read");
-  await expect(page.locator(".library-lesson")).not.toContainText(
+  await expect(page.getByRole("checkbox", { name: "Unread only" })).toHaveCount(
+    0,
+  );
+  await expect(page.locator(".archive-summary")).not.toContainText("read");
+  await expect(page.locator(".archive-lesson")).not.toContainText(
     "saved cards",
   );
   await page
@@ -802,7 +805,7 @@ async function openDailyLesson(page: import("@playwright/test").Page) {
   if (await lesson.count()) await lesson.click();
 }
 
-test("opening a library does not save it, and locking waits for the latest progress", async ({
+test("opening the archive does not save it, and locking waits for the latest progress", async ({
   request,
   page,
 }) => {

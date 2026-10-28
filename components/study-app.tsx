@@ -7,7 +7,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { BookOpen, Home, Library, Layers, Check, Plus, X } from "lucide-react";
+import { BookOpen, Home, Archive, Layers, Check, Plus, X } from "lucide-react";
 import DailyReview from "./daily-review";
 import {
   startDailySet,
@@ -16,7 +16,7 @@ import {
 } from "@/lib/daily-review";
 import Reader from "./reader";
 import Review from "./review";
-import LessonLibrary from "./lesson-library";
+import LessonArchive from "./lesson-archive";
 import CardDialog from "./card-dialog";
 import ImportLesson from "./import-lesson";
 import EditingAccess from "./editing-access";
@@ -36,7 +36,7 @@ import { addCards, cardCollision } from "@/lib/cards";
 import { downloadJson } from "@/lib/download";
 import { PROGRESS_STORAGE } from "@/hooks/use-progress";
 import { useProgress } from "@/hooks/use-progress";
-type Page = "home" | "today" | "library" | "review" | "daily-review";
+type Page = "home" | "today" | "archive" | "review" | "daily-review";
 type Pick = { text: string; sentence: string };
 export default function StudyApp({
   initialLessons,
@@ -144,6 +144,7 @@ export default function StudyApp({
     }
   }, [canEdit]);
   const reader = useRef<HTMLDivElement>(null);
+  const archiveScroll = useRef(0);
   const lesson = lessons.find((l) => l.id === lessonId) ??
     lessons[lessons.length - 1] ?? {
       id: "empty",
@@ -213,9 +214,15 @@ export default function StudyApp({
   }
   const closeModal = useCallback(() => setModal(null), []);
   function navigate(next: Page) {
+    if (page === "archive") archiveScroll.current = window.scrollY;
     setPage(next);
     setSelection(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    requestAnimationFrame(() => {
+      window.scrollTo({
+        top: next === "archive" ? archiveScroll.current : 0,
+        behavior: "instant",
+      });
+    });
   }
   function openLesson(id: string) {
     setLessonId(id);
@@ -348,7 +355,7 @@ export default function StudyApp({
             [
               { id: "home", label: "Home", icon: Home },
               { id: "today", label: "Today", icon: BookOpen },
-              { id: "library", label: "Archive", icon: Library },
+              { id: "archive", label: "Archive", icon: Archive },
               { id: "review", label: "Review", icon: Layers },
             ] as const
           ).map((item) => (
@@ -359,7 +366,7 @@ export default function StudyApp({
             >
               <item.icon size={19} />
               <span>{item.label}</span>
-              {item.id === "library" && unread > 0 && (
+              {item.id === "archive" && unread > 0 && (
                 <span className="count" title="Unread lessons">
                   {unread}
                 </span>
@@ -378,7 +385,7 @@ export default function StudyApp({
               ? "Home"
               : page === "today"
                 ? "Today"
-                : page === "library"
+                : page === "archive"
                   ? "Archive"
                   : "Review"}
           </span>
@@ -542,17 +549,18 @@ export default function StudyApp({
                 onRequestEditing={requestEditing}
               />
             ))}
-          {page === "library" &&
-            (lessons.length === 0 ? (
-              emptyLessons
-            ) : (
-              <LessonLibrary
+          <div hidden={page !== "archive"}>
+            {lessons.length > 0 ? (
+              <LessonArchive
                 lessons={lessons}
                 state={viewState}
-                openLesson={openLesson}
+                onOpenLesson={openLesson}
                 canEdit={canEdit}
               />
-            ))}
+            ) : page === "archive" ? (
+              emptyLessons
+            ) : null}
+          </div>
           {page === "review" &&
             (canEdit ? (
               <Review
@@ -579,7 +587,7 @@ export default function StudyApp({
           [
             { id: "home", label: "Home", icon: Home },
             { id: "today", label: "Today", icon: BookOpen },
-            { id: "library", label: "Archive", icon: Library },
+            { id: "archive", label: "Archive", icon: Archive },
             { id: "review", label: "Review", icon: Layers },
           ] as const
         ).map((item) => (
@@ -591,7 +599,7 @@ export default function StudyApp({
             <item.icon size={21} />
             <span>
               {item.label}
-              {item.id === "library" && unread ? ` · ${unread}` : ""}
+              {item.id === "archive" && unread ? ` · ${unread}` : ""}
               {item.id === "review" && active.length
                 ? ` · ${active.length}`
                 : ""}
