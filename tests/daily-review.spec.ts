@@ -143,7 +143,11 @@ test("Home completion stays actionable; daily cards support backtracking, repeat
     .getByRole("button", { name: "Reveal meaning", exact: true })
     .click();
   await page.getByRole("button", { name: "Finish review" }).click();
-  await page.getByRole("button", { name: "Review these again" }).click();
+  await expect(page.locator(".daily-activities")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Daily review complete", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Review again", exact: true }).click();
   await expect(page.locator(".flashcard h2")).toHaveText(first);
   await expect(page.locator(".card-answer")).toHaveCount(0);
   await page
@@ -205,4 +209,47 @@ test("Home completion stays actionable; daily cards support backtracking, repeat
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+
+test("flashcards keep their dimensions and word position on reveal, with scrolling for long answers in both review flows", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (saved) =>
+      localStorage.setItem("everyday-chinese-v1", JSON.stringify(saved)),
+    {
+      ...emptyState,
+      cards: [
+        {
+          ...card,
+          meaning: "An extended explanation. ".repeat(80),
+          sentence: "這是一個比較長的例句。".repeat(25),
+        },
+      ],
+    },
+  );
+  await page.goto("/");
+  for (const flow of ["daily", "extra"]) {
+    if (flow === "extra") await nav(page, "Review");
+    await page
+      .getByRole("button", { name: "Start review", exact: true })
+      .click();
+    const flashcard = page.locator(".flashcard");
+    const before = (await flashcard.boundingBox())!;
+    const wordBefore = (await flashcard.locator("h2").boundingBox())!;
+    await flashcard.click();
+    const after = (await flashcard.boundingBox())!;
+    const wordAfter = (await flashcard.locator("h2").boundingBox())!;
+    expect(after.height).toBe(before.height);
+    expect(after.width).toBe(before.width);
+    expect(wordAfter.y).toBe(wordBefore.y);
+    expect(
+      await flashcard.evaluate((el) => el.scrollHeight > el.clientHeight),
+    ).toBe(true);
+    await flashcard.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    expect(await flashcard.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    await nav(page, "Home");
+  }
 });

@@ -1004,6 +1004,9 @@ test("daily set and completion sync to a fresh browser session without exposing 
     .getByRole("button", { name: "Reveal meaning", exact: true })
     .click();
   await page.getByRole("button", { name: "Finish review" }).click();
+  await expect(
+    page.getByRole("button", { name: "Review again", exact: true }),
+  ).toBeVisible();
   await expect
     .poll(
       async () =>

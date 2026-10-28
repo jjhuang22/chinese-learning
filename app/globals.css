@@ -739,16 +739,25 @@ main {
 }
 .flashcard {
   width: 100%;
-  min-height: 360px;
+  height: 440px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   background: var(--white);
   border: 1px solid var(--line);
   border-radius: 11px;
   padding: 40px 30px;
   box-shadow: 0 6px 25px #36432705;
+}
+.flashcard > * {
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .flashcard h2 {
   font-family: var(--serif);
@@ -770,6 +779,7 @@ main {
   color: #9aa28f;
 }
 .card-answer {
+  width: 100%;
   margin-top: 30px;
   text-align: center;
 }
@@ -1267,7 +1277,7 @@ main {
     gap: 14px;
   }
   .flashcard {
-    min-height: 340px;
+    height: 400px;
     padding: 35px 22px;
   }
   .flashcard h2 {
@@ -1659,14 +1669,6 @@ main {
 }
 .daily-review .next-card {
   margin-top: 22px;
-}
-.daily-complete {
-  padding-top: 24px;
-}
-.daily-complete-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 @media (max-width: 760px) {
   .daily-activities {

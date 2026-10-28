@@ -83,6 +83,7 @@ export default function Review({
                 />
               </div>
               <button
+                key={currentCard.id}
                 className={`flashcard ${flipped ? "flipped" : ""}`}
                 onClick={() => setFlipped((v) => !v)}
                 aria-label={flipped ? "Hide meaning" : "Reveal meaning"}

@@ -17,7 +17,6 @@ export default function DailyReview({
 }) {
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState<string[]>([]);
-  const [finished, setFinished] = useState(false);
   const selected = session.cardIds.flatMap((id) => {
     const card = cards.find((c) => c.id === id);
     return card ? [card] : [];
@@ -26,27 +25,13 @@ export default function DailyReview({
   const allSeen =
     selected.length > 0 &&
     selected.every((c) => session.seenIds.includes(c.id));
-  if (finished || !card)
+  if (!card)
     return (
-      <section className="review-session daily-review daily-complete">
-        <h1>{selected.length ? "Daily review complete" : "No saved cards"}</h1>
-        <div className="daily-complete-actions">
-          {selected.length > 0 && (
-            <button
-              className="primary"
-              onClick={() => {
-                setIndex(0);
-                setRevealed([]);
-                setFinished(false);
-              }}
-            >
-              Review these again
-            </button>
-          )}
-          <button className="primary" onClick={onHome}>
-            Back to Home
-          </button>
-        </div>
+      <section className="review-session daily-review">
+        <h1>No saved cards</h1>
+        <button className="primary" onClick={onHome}>
+          Back to Home
+        </button>
       </section>
     );
   const visible = revealed.includes(card.id);
@@ -78,6 +63,7 @@ export default function DailyReview({
         </button>
       </div>
       <button
+        key={card.id}
         className="flashcard"
         onClick={() => {
           if (!visible) onReviewed(card.id);
@@ -105,7 +91,7 @@ export default function DailyReview({
           disabled={!allSeen}
           onClick={() => {
             onComplete();
-            setFinished(true);
+            onHome();
           }}
         >
           Finish review
