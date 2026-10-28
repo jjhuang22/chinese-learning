@@ -6,6 +6,7 @@ import { ArrowUpRight, Check, Plus } from "lucide-react";
 export default function CardDialog({
   suggestion,
   existing,
+  error,
   onClose,
   onSave,
   onUpdate,
@@ -16,6 +17,7 @@ export default function CardDialog({
 }: {
   suggestion: Suggestion;
   existing?: Card;
+  error: string;
   onClose: () => void;
   onSave: (s: Suggestion) => void;
   onUpdate: (s: Suggestion) => void;
@@ -44,6 +46,11 @@ export default function CardDialog({
         {draft.text}
       </h2>
       <p className="dialog-pinyin">{draft.pinyin}</p>
+      {error && (
+        <p role="alert" className="import-error">
+          {error}
+        </p>
+      )}
       {editing ? (
         <form
           onSubmit={(e) => {

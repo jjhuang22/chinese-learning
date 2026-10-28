@@ -28,13 +28,16 @@ export class ProgressSync {
     this.current = state;
   }
 
-  save(): Promise<boolean> {
-    if (this.conflict) return Promise.resolve(false);
-    if (this.inFlight) return this.inFlight;
-    this.inFlight = this.drain().finally(() => {
-      this.inFlight = null;
-    });
-    return this.inFlight;
+  async save(): Promise<boolean> {
+    if (this.conflict) return false;
+    while (this.hasPendingChanges()) {
+      this.inFlight ??= this.drain().finally(() => {
+        this.inFlight = null;
+      });
+      await this.inFlight;
+      if (this.conflict) return false;
+    }
+    return true;
   }
 
   private async drain() {

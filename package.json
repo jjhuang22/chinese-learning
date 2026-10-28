@@ -8,7 +8,7 @@
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
-    "test:privacy": "playwright test --config=playwright.privacy.config.ts",
+    "test:privacy": "node scripts/test-privacy.mjs",
     "test:database": "playwright test --config=playwright.database.config.ts",
     "test:passcode": "playwright test --config=playwright.passcode.config.ts",
     "format": "prettier --write .",

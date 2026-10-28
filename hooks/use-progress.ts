@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type StudyState } from "@/lib/model";
+import { emptyState, type StudyState } from "@/lib/model";
 import { progressSchema, revisionSchema } from "@/lib/progress-schema";
 import {
   ProgressConflictError,
@@ -8,7 +8,7 @@ import {
   ProgressSync,
 } from "@/lib/progress-sync";
 
-const STORAGE = "everyday-chinese-v1";
+export const PROGRESS_STORAGE = "everyday-chinese-v1";
 
 export function useProgress(
   initial: StudyState,
@@ -26,6 +26,9 @@ export function useProgress(
   );
   const [conflict, setConflict] = useState(false);
   const [storageError, setStorageError] = useState("");
+  const [localBlocked, setLocalBlocked] = useState(false);
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const sync = useRef<ProgressSync | null>(null);
   if (!sync.current)
     sync.current = new ProgressSync(
@@ -57,7 +60,9 @@ export function useProgress(
     );
 
   const retrySync = useCallback(async () => {
+    if (localDemo) return !localBlocked;
     if (!canEdit || initialRevision === null) return false;
+    sync.current!.update(stateRef.current);
     try {
       const saved = await sync.current!.save();
       if (saved) setSyncError("");
@@ -73,16 +78,17 @@ export function useProgress(
       );
       return false;
     }
-  }, [initialRevision, canEdit]);
+  }, [initialRevision, canEdit, localDemo, localBlocked]);
 
   useEffect(() => {
     if (localDemo) {
       try {
-        const raw = localStorage.getItem(STORAGE);
+        const raw = localStorage.getItem(PROGRESS_STORAGE);
         if (raw) setState(progressSchema.parse(JSON.parse(raw)));
       } catch {
+        setLocalBlocked(true);
         setStorageError(
-          "Browser progress could not be loaded. Export your work before closing this tab.",
+          "Saved progress could not be loaded. The original data has been kept. Export it before resetting local progress.",
         );
       }
     }
@@ -90,10 +96,10 @@ export function useProgress(
   }, [localDemo]);
 
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || localBlocked) return;
     if (localDemo) {
       try {
-        localStorage.setItem(STORAGE, JSON.stringify(state));
+        localStorage.setItem(PROGRESS_STORAGE, JSON.stringify(state));
       } catch {
         setStorageError("Progress could not be saved in this browser.");
       }
@@ -103,8 +109,39 @@ export function useProgress(
     if (!canEdit || initialRevision === null) return;
     const timer = setTimeout(() => void retrySync(), 500);
     return () => clearTimeout(timer);
-  }, [state, loaded, localDemo, retrySync, initialRevision, canEdit]);
+  }, [
+    state,
+    loaded,
+    localDemo,
+    retrySync,
+    initialRevision,
+    canEdit,
+    localBlocked,
+  ]);
 
+  useEffect(() => {
+    if (localDemo) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      sync.current!.update(stateRef.current);
+      if (sync.current!.hasPendingChanges()) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [localDemo]);
+  function resetLocalProgress() {
+    try {
+      localStorage.removeItem(PROGRESS_STORAGE);
+    } catch {
+      setStorageError("Browser storage is unavailable.");
+      return;
+    }
+    setState(emptyState);
+    setLocalBlocked(false);
+    setStorageError("");
+  }
   return {
     loaded,
     state,
@@ -113,6 +150,11 @@ export function useProgress(
     conflict,
     retrySync,
     storageError,
-    hasPendingChanges: () => sync.current!.hasPendingChanges(),
+    localBlocked,
+    resetLocalProgress,
+    hasPendingChanges: () => {
+      sync.current!.update(stateRef.current);
+      return sync.current!.hasPendingChanges();
+    },
   };
 }

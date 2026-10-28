@@ -23,7 +23,7 @@ Run the entire [schema.sql](../supabase/schema.sql) in Supabase SQL Editor. It i
 
 The schema removes legacy authenticated-browser permissions, retains server-only access, adds a progress revision column and `save_progress` function, and installs the durable unlock limiter. Deploy the new application only after applying it. Previously open app versions must reload because saves now require a revision.
 
-Use the repository root as Vercel's Root Directory; [vercel.json](../vercel.json) selects Next.js and `.next`. Deploy the reviewed commit with the four variables configured.
+Use the repository root as Vercel's Root Directory. Keep [vercel.json](../vercel.json): it explicitly selects the Next.js framework, build command, and `.next` output for this project's hosting settings. Deploy the reviewed commit with the four variables configured.
 
 ## Verify
 
@@ -38,11 +38,11 @@ Automated tests use synthetic accounts. These checks verify your actual project 
 
 ## Sessions and saves
 
-Editor sessions last 30 days. The cookie is HttpOnly, SameSite=Strict, and Secure on Vercel/HTTPS. Its HMAC signing key derives from the service key, passcode, and learner UUID. Changing any of those values invalidates app sessions after redeployment. Use **Lock editing** to clear the current device cookie. Rotating the editing password invalidates editor access on all devices. It does not block public lesson reading.
+Editor sessions last 30 days. The cookie is HttpOnly, SameSite=Strict, and Secure on Vercel/HTTPS. Its HMAC signing key derives from the service key, passcode, and learner UUID. Changing any of those values invalidates app sessions after redeployment. Use **Lock editing** to save pending changes and clear the current device cookie. If saving fails, editing stays enabled so you can retry. Rotating the editing password invalidates editor access on all devices. It does not block public lesson reading.
 
 Lessons and their suggested cards are publicly readable. Saved flashcards, reading/review progress, and all mutation endpoints require the editing password. Public page responses do not load or serialize personal progress. All learning-data queries run on the server and scope to `LEARNER_USER_ID`. Supabase browser roles cannot access lessons or progress after the current schema is applied. The unlock limiter permits five attempts per client and 100 globally per 15-minute window, stores keyed client hashes, and fails closed if unavailable.
 
-Progress stays in memory until saved; it is not mirrored into browser storage in protected mode. Keep the tab open after a save failure and retry. For a conflict, use **Export unsaved progress** in the conflict warning before reloading. The conflict export contains progress and cards only, with no restore UI. Keep a separate Supabase backup for the full library. Previously authorized devices may retain content they have already loaded.
+Progress stays in memory until saved; it is not mirrored into browser storage in protected mode. Keep the tab open after a save failure and retry. Closing a tab with unsaved progress prompts you to stay. For a conflict, use **Export unsaved progress** in the conflict warning before reloading. The conflict export contains progress and cards only, with no restore UI. Keep a separate Supabase backup for the full library. Previously authorized devices may retain content they have already loaded.
 
 ## Troubleshooting
 

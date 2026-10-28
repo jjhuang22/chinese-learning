@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type { StudyState, Suggestion } from "@/lib/model";
+import { rateCard, DAY } from "@/lib/cards";
 import { matchesCardSearch } from "@/lib/card-search";
 import { createReviewSession } from "@/lib/review-session";
 export default function Review({
@@ -44,20 +45,7 @@ export default function Review({
     const id = session[cursor];
     setState((prev) => ({
       ...prev,
-      cards: prev.cards.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              status: archive ? "archived" : "active",
-              reviews: c.reviews + 1,
-              dueAt:
-                now +
-                (archive
-                  ? 30 * 86400000
-                  : Math.min(7, c.reviews + 1) * 86400000),
-            }
-          : c,
-      ),
+      cards: prev.cards.map((c) => (c.id === id ? rateCard(c, archive) : c)),
     }));
     if (!archive && session.filter((x) => x === id).length === 1)
       setSession((prev) => [...prev!, id]);
@@ -286,7 +274,7 @@ export default function Review({
                                 ? {
                                     ...x,
                                     status: "archived",
-                                    dueAt: Date.now() + 30 * 86400000,
+                                    dueAt: Date.now() + 30 * DAY,
                                   }
                                 : x,
                             ),

@@ -39,7 +39,7 @@ npm ci
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000). Development uses neutral lessons, or ignored `.private/original-lessons.json` when present. Demo imports and progress stay in that browser. Set `USE_PUBLIC_FIXTURES=1` to force neutral content.
+Open [localhost:3000](http://localhost:3000). Development uses neutral lessons, or ignored `.private/original-lessons.json` when present. Demo imports and progress stay in that browser. Unreadable local progress is kept for export until you explicitly reset it. Set `USE_PUBLIC_FIXTURES=1` to force neutral content.
 
 | Mode                | Command                                                                        | Storage and access                                               |
 | ------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
@@ -59,7 +59,7 @@ Demo servers are for trusted local use. The commands bind to all network interfa
 - Review a shuffled selection of up to 12 due cards. **Keep reviewing** requeues a card once per session and schedules another review in 1–7 days. **Understand already** archives it; an optional refresher becomes available after 30 days.
 - Browse, edit, archive, or restore cards. Mark lessons read.
 
-Lessons are stored individually in `lessons`. Cards, dismissed suggestions, read markers, and feedback share one JSON document in `learner_state`. Cloud saves happen after edits, one request at a time. A revision check rejects stale saves from another tab/device. If a conflict appears, use **Export unsaved progress** in the conflict warning before reloading; conflicts are not merged automatically.
+Lessons are stored individually in `lessons`. Cards, dismissed suggestions, read markers, and feedback share one JSON document in `learner_state`. Cloud saves happen after edits, one request at a time. Locking waits for pending changes; closing a tab with unsaved progress prompts you to stay. A revision check rejects stale saves from another tab/device. If a conflict appears, use **Export unsaved progress** in the conflict warning before reloading; conflicts are not merged automatically.
 
 ## Import lessons
 
@@ -75,7 +75,7 @@ npm run check
 
 This runs formatting, a production build, TypeScript, and all four test suites. Stop manually running servers on test ports 3000–3002 and 4010 first. Browser tests use `/usr/bin/chromium` by default; set `CHROMIUM_PATH` to another Chromium executable. CI installs Playwright's Chromium and uses synthetic data without production credentials.
 
-Run a suite separately with `npm test`, `npm run test:database`, `npm run test:privacy`, or `npm run test:passcode`; browser/server suites require a current build. Use `npm run format` to apply formatting. Database tests execute the actual SQL in PGlite; protected-route tests use a local Supabase-compatible test service backed by that SQL.
+Run a suite separately with `npm test`, `npm run test:database`, `npm run test:privacy`, or `npm run test:passcode`; browser/server suites require a current build. The privacy command rebuilds with private runtime data present; on a clean checkout it creates and removes an ignored canary fixture without replacing existing originals. Use `npm run format` to apply formatting. Database tests execute the actual SQL in PGlite; protected-route tests use a local Supabase-compatible test service backed by that SQL.
 
 ## Current limits
 

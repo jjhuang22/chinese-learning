@@ -7,9 +7,9 @@ import {
   type Suggestion,
   type Card,
   findCard,
-  cardKey,
   paragraphGroups,
 } from "@/lib/model";
+import { addCards } from "@/lib/cards";
 function dateLabel(date: string) {
   return new Date(date + "T12:00:00").toLocaleDateString("en-US", {
     weekday: "long",
@@ -240,25 +240,8 @@ export default function Reader({
                 onRequestEditing();
                 return;
               }
-              const additions: Card[] = pending
-                .filter(
-                  (s, i, a) =>
-                    a.findIndex((x) => cardKey(x.text) === cardKey(s.text)) ===
-                    i,
-                )
-                .map((s) => ({
-                  ...s,
-                  lessonId: lesson.id,
-                  status: "active",
-                  dueAt: Date.now(),
-                  reviews: 0,
-                  createdAt: Date.now(),
-                }));
-              setState((prev) => ({
-                ...prev,
-                cards: [...prev.cards, ...additions],
-              }));
-              setNotice(`${additions.length} cards saved`);
+              setState((prev) => addCards(prev, pending, lesson.id));
+              setNotice("Cards saved to your review deck");
             }}
           >
             <Plus size={16} />

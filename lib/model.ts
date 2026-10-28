@@ -1,4 +1,11 @@
 import { z } from "zod";
+export const calendarDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+  .refine((value) => {
+    const d = new Date(value + "T12:00:00Z");
+    return !Number.isNaN(d.valueOf()) && d.toISOString().slice(0, 10) === value;
+  }, "Use a real calendar date");
 export const suggestionSchema = z.object({
   id: z.string(),
   text: z.string().min(1),
@@ -9,7 +16,7 @@ export const suggestionSchema = z.object({
 });
 export const lessonSchema = z.object({
   id: z.string(),
-  date: z.string(),
+  date: calendarDateSchema,
   title: z.string().min(1),
   subtitle: z.string(),
   passages: z
@@ -35,21 +42,26 @@ export const lessonSchema = z.object({
 });
 export type Suggestion = z.infer<typeof suggestionSchema>;
 export type Lesson = z.infer<typeof lessonSchema>;
-export type Card = Suggestion & {
-  lessonId: string;
-  status: "active" | "archived";
-  dueAt: number;
-  reviews: number;
-  intervalDays?: number;
-  createdAt: number;
-};
-export type StudyState = {
-  reviewedOn?: string;
-  cards: Card[];
-  dismissed: string[];
-  read: string[];
-  feedback: Record<string, string>;
-};
+export const feedbackOptions = ["Too easy", "About right", "Too hard"] as const;
+export const cardSchema = suggestionSchema.extend({
+  lessonId: z.string().min(1),
+  status: z.enum(["active", "archived"]),
+  dueAt: z.number().int().nonnegative(),
+  reviews: z.number().int().nonnegative(),
+  intervalDays: z.number().min(1).max(30).optional(),
+  createdAt: z.number().int().nonnegative(),
+});
+export const progressSchema = z
+  .object({
+    reviewedOn: calendarDateSchema.optional(),
+    cards: z.array(cardSchema).max(5000),
+    dismissed: z.array(z.string()).max(20000),
+    read: z.array(z.string()).max(20000),
+    feedback: z.record(z.string(), z.enum(feedbackOptions)),
+  })
+  .strict();
+export type Card = z.infer<typeof cardSchema>;
+export type StudyState = z.infer<typeof progressSchema>;
 export const emptyState: StudyState = {
   cards: [],
   dismissed: [],
@@ -79,13 +91,7 @@ export function paragraphGroups(passage: Lesson["passages"][number]) {
   }[][] = [];
   let last: number | undefined;
   passage.sentences.forEach((sentence, index) => {
-    const paragraph =
-      sentence.paragraph ??
-      (passage.format.toLowerCase() === "dialogue"
-        ? /^[甲乙丙丁][：:]/.test(sentence.text)
-          ? index
-          : (last ?? 0)
-        : Math.floor(index / 3));
+    const paragraph = sentence.paragraph;
     if (paragraph !== last || !groups.length) groups.push([]);
     groups[groups.length - 1].push({ sentence, index });
     last = paragraph;

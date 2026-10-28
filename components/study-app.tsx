@@ -33,12 +33,16 @@ import {
   Lesson,
   localDate,
   lessonSchema,
+  suggestionSchema,
   StudyState,
   Suggestion,
 } from "@/lib/model";
+import { addCards, cardCollision } from "@/lib/cards";
+import { downloadJson } from "@/lib/download";
+import { PROGRESS_STORAGE } from "@/hooks/use-progress";
 import { useProgress } from "@/hooks/use-progress";
 type Page = "home" | "today" | "library" | "review" | "daily-review";
-type Pick = { text: string; sentence: string; lessonId: string };
+type Pick = { text: string; sentence: string };
 export default function StudyApp({
   initialLessons,
   localDemo,
@@ -68,6 +72,8 @@ export default function StudyApp({
     conflict,
     retrySync,
     storageError,
+    localBlocked,
+    resetLocalProgress,
     hasPendingChanges,
   } = useProgress(
     initialState,
@@ -94,14 +100,19 @@ export default function StudyApp({
     }
     setImporting(true);
   }
+  const [locking, setLocking] = useState(false);
   async function lockEditing() {
-    if (hasPendingChanges() && !(await retrySync())) return;
+    if (locking) return;
+    setLocking(true);
     try {
+      if (hasPendingChanges() && !(await retrySync())) return;
       const response = await fetch("/api/lock", { method: "POST" });
       if (!response.ok) throw new Error();
       window.location.reload();
     } catch {
       setNotice("Could not lock editing. Check your connection and try again.");
+    } finally {
+      setLocking(false);
     }
   }
   const [lessonStorageError, setLessonStorageError] = useState("");
@@ -125,6 +136,7 @@ export default function StudyApp({
       setLessonStorageError("Local lessons could not be loaded.");
     }
   }, [localDemo]);
+  const [cardError, setCardError] = useState("");
   const [modal, setModal] = useState<Suggestion | null>(null);
   const [selection, setSelection] = useState<Pick | null>(null);
   const [importing, setImporting] = useState(false);
@@ -187,6 +199,10 @@ export default function StudyApp({
   useEffect(() => {
     setSelection(null);
   }, [lessonId]);
+  function openCard(s: Suggestion) {
+    setCardError("");
+    setModal(s);
+  }
   const closeModal = useCallback(() => setModal(null), []);
   function navigate(next: Page) {
     setPage(next);
@@ -197,6 +213,18 @@ export default function StudyApp({
     setLessonId(id);
     navigate("today");
   }
+  function validateCard(s: Suggestion) {
+    if (
+      !suggestionSchema.safeParse(s).success ||
+      cardCollision(state.cards, s)
+    ) {
+      setCardError(
+        "Enter all card fields and choose an expression that is not already saved.",
+      );
+      return false;
+    }
+    return true;
+  }
   function saveCard(s: Suggestion) {
     if (!canEdit) {
       requestEditing();
@@ -204,27 +232,17 @@ export default function StudyApp({
     }
     const found = findCard(state.cards, s.text);
     if (found) {
-      setNotice(
+      setCardError(
         found.status === "archived"
           ? "This card is archived. Restore it from Review."
           : "Already saved to your review deck.",
       );
       return;
     }
-    const card: Card = {
-      ...s,
-      lessonId: lesson.id,
-      status: "active",
-      dueAt: Date.now(),
-      reviews: 0,
-      createdAt: Date.now(),
-    };
-    setState((prev) => ({
-      ...prev,
-      cards: [...prev.cards, card],
-      dismissed: prev.dismissed.filter((id) => id !== s.id),
-    }));
+    if (!validateCard(s)) return false;
+    setState((prev) => addCards(prev, [s], lesson.id));
     setNotice("Saved to your review deck");
+    return true;
   }
   function unsaveCard(card: Card) {
     if (!canEdit) {
@@ -252,7 +270,7 @@ export default function StudyApp({
     const f = sel.focusNode?.parentElement?.closest("[data-sentence]");
     if (!a || !f) return;
     const context = a === f ? (a?.getAttribute("data-sentence") ?? text) : text;
-    setSelection({ text, sentence: context, lessonId: lesson.id });
+    setSelection({ text, sentence: context });
   }
   useEffect(() => {
     const selected = () => {
@@ -262,7 +280,7 @@ export default function StudyApp({
     document.addEventListener("selectionchange", selected);
     return () => document.removeEventListener("selectionchange", selected);
   });
-  async function createSelected() {
+  function createSelected() {
     if (!canEdit) {
       requestEditing();
       return;
@@ -275,7 +293,7 @@ export default function StudyApp({
       findCard(state.cards, selected.text) ??
       lesson.suggestions.find((s) => s.text === selected.text);
     if (found) {
-      setModal(found);
+      openCard(found);
       return;
     }
     const draft: Suggestion = {
@@ -286,19 +304,15 @@ export default function StudyApp({
       sentence: selected.sentence,
       kind: "vocabulary",
     };
-    setModal(draft);
+    openCard(draft);
   }
   function exportProgress() {
-    const blob = new Blob([JSON.stringify(state, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "everyday-chinese-progress.json";
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadJson(
+      JSON.stringify(state, null, 2),
+      "everyday-chinese-progress.json",
+    );
   }
+
   const emptyLessons = (
     <section className="empty-state">
       <BookOpen size={34} />
@@ -365,8 +379,13 @@ export default function StudyApp({
               <button
                 className="text-button editing-trigger"
                 onClick={canEdit ? lockEditing : requestEditing}
+                disabled={locking}
               >
-                {canEdit ? "Lock editing" : "Enable editing"}
+                {locking
+                  ? "Saving and locking…"
+                  : canEdit
+                    ? "Lock editing"
+                    : "Enable editing"}
               </button>
             )}
             <button
@@ -379,7 +398,28 @@ export default function StudyApp({
           </div>
         </header>
         {(storageError || lessonStorageError) && (
-          <div className="warning">{storageError || lessonStorageError}</div>
+          <div className="warning">
+            {storageError || lessonStorageError}
+            {localBlocked && (
+              <>
+                <button
+                  onClick={() => {
+                    const raw = localStorage.getItem(PROGRESS_STORAGE);
+                    if (raw)
+                      downloadJson(
+                        raw,
+                        "everyday-chinese-original-progress.json",
+                      );
+                  }}
+                >
+                  Export original data
+                </button>
+                <button onClick={resetLocalProgress}>
+                  Reset local progress
+                </button>
+              </>
+            )}
+          </div>
         )}
         {(canEdit || hasPendingChanges()) && syncError && (
           <div className="warning">
@@ -535,7 +575,7 @@ export default function StudyApp({
                 lesson={lesson}
                 state={viewState}
                 setState={setState}
-                setModal={setModal}
+                setModal={openCard}
                 setNotice={setNotice}
                 saveCard={saveCard}
                 unsaveCard={unsaveCard}
@@ -561,7 +601,7 @@ export default function StudyApp({
               <Review
                 state={viewState}
                 setState={setState}
-                setModal={setModal}
+                setModal={openCard}
                 navigate={navigate}
                 now={now}
               />
@@ -633,6 +673,7 @@ export default function StudyApp({
           key={modal.id}
           suggestion={findCard(viewState.cards, modal.text) ?? modal}
           existing={findCard(viewState.cards, modal.text)}
+          error={cardError}
           onClose={closeModal}
           canEdit={canEdit}
           onRequestEditing={requestEditing}
@@ -641,8 +682,7 @@ export default function StudyApp({
               requestEditing();
               return;
             }
-            saveCard(s);
-            setModal(null);
+            if (saveCard(s)) setModal(null);
           }}
           onUnsave={unsaveCard}
           onSource={() => {
@@ -657,6 +697,7 @@ export default function StudyApp({
               requestEditing();
               return;
             }
+            if (!validateCard(s)) return;
             setState((prev) => ({
               ...prev,
               cards: prev.cards.map((c) =>

@@ -1,18 +1,11 @@
 import { z } from "zod";
-import { type Lesson } from "./model";
+import { calendarDateSchema, type Lesson } from "./model";
 export const MAX_IMPORT_BYTES = 300_000;
 const text = (max: number) => z.string().trim().min(1).max(max);
-const date = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
-  .refine((value) => {
-    const d = new Date(value + "T12:00:00Z");
-    return !Number.isNaN(d.valueOf()) && d.toISOString().slice(0, 10) === value;
-  }, "Use a real calendar date");
 export const importSchema = z
   .object({
     schemaVersion: z.literal(1),
-    date,
+    date: calendarDateSchema,
     title: text(200),
     passages: z
       .array(
