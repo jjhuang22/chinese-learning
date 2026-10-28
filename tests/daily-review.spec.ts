@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { dailyQuestions, scheduleRecall } from "../lib/daily-review";
+import { selectDailyCards, recordDailyReview } from "../lib/daily-review";
 import { Card, emptyState } from "../lib/model";
-import { progressSchema } from "../lib/progress-schema";
 
 const card: Card = {
   id: "word-1",
@@ -17,46 +16,34 @@ const card: Card = {
   reviews: 0,
 };
 
-test("selection caps overdue practice, excludes future and archived words, and masks all occurrences", () => {
-  const cards = Array.from({ length: 15 }, (_, i) => ({
+test("daily selection samples the whole active deck, caps at ten, and excludes duplicates and archived words", () => {
+  const cards = Array.from({ length: 20 }, (_, i) => ({
     ...card,
     id: `${i}`,
     text: `字${i}`,
-    sentence: `字${i}和字${i}`,
-    dueAt: i,
+    dueAt: 9e12,
   }));
-  const questions = dailyQuestions(
+  const selected = selectDailyCards(
     [
       ...cards,
-      { ...card, id: "future", dueAt: 200 },
-      { ...card, id: "archive", status: "archived" },
+      { ...cards[0], id: "duplicate" },
+      { ...card, status: "archived" },
     ],
-    100,
+    () => 0,
   );
-  expect(questions).toHaveLength(8);
-  expect(new Set(questions.map((q) => q.card.id))).toEqual(
-    new Set(cards.slice(0, 8).map((c) => c.id)),
+  expect(selected).toHaveLength(10);
+  expect(new Set(selected.map((c) => c.text)).size).toBe(10);
+  expect(selected.map((c) => c.id)).toEqual(
+    cards.slice(1, 11).map((c) => c.id),
   );
-  expect(questions[0].prompt).toBe("＿＿＿和＿＿＿");
+  expect(selectDailyCards([])).toEqual([]);
+  const reviewed = recordDailyReview(card, 100);
+  expect(reviewed.status).toBe("active");
+  expect(reviewed.reviews).toBe(1);
+  expect(recordDailyReview(cards[0], 100).dueAt).toBe(cards[0].dueAt);
 });
 
-test("successful recall expands spacing and a miss resets it; old progress remains valid", () => {
-  const first = scheduleRecall(card, true, 100);
-  const second = scheduleRecall(first, true, 100);
-  expect(first.intervalDays).toBe(3);
-  expect(second.intervalDays).toBe(6);
-  expect(scheduleRecall(second, false, 100).dueAt).toBe(100 + 86400000);
-  expect(progressSchema.parse(emptyState)).toEqual(emptyState);
-  expect(
-    progressSchema.parse({
-      ...emptyState,
-      cards: [second],
-      reviewedOn: "2026-10-27",
-    }).reviewedOn,
-  ).toBe("2026-10-27");
-});
-
-test("home separates activities and daily completion survives reload without archiving words", async ({
+test("simple Home and flashcard-only daily review persist completion", async ({
   page,
 }) => {
   await page.addInitScript(
@@ -68,25 +55,43 @@ test("home separates activities and daily completion survives reload without arc
       ...emptyState,
       cards: [
         card,
-        { ...card, id: "word-2", text: "每天", meaning: "every day" },
+        {
+          ...card,
+          id: "word-2",
+          text: "每天",
+          meaning: "every day",
+          dueAt: 9e12,
+        },
       ],
     },
   );
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Daily lesson", exact: true }),
-  ).toBeVisible();
+    page.locator(
+      ".daily-activities svg, .daily-activities p, .daily-activities .eyebrow",
+    ),
+  ).toHaveCount(0);
+  await expect(page.locator(".daily-activities .primary")).toHaveCount(2);
   await page
     .getByRole("button", { name: "Start daily review", exact: true })
     .click();
-  await page.getByLabel("Your answer (Chinese characters)").fill("學習");
-  await page.getByRole("button", { name: "Check answer" }).click();
-  await expect(page.getByRole("status")).toContainText("Recalled!");
-  await page.getByRole("button", { name: "Next question" }).click();
-  await page.getByRole("button", { name: "Show answer", exact: true }).click();
-  await page.getByRole("button", { name: "Finish review" }).click();
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+  for (let i = 0; i < 2; i++) {
+    await expect(page.locator(".session-header")).toContainText(`${i + 1} / 2`);
+    await expect(page.locator(".card-answer")).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Reveal meaning", exact: true })
+      .click();
+    await expect(page.locator(".card-answer")).toBeVisible();
+    await page
+      .getByRole("button", {
+        name: i === 1 ? "Finish review" : "Next",
+        exact: true,
+      })
+      .click();
+  }
   await expect(
-    page.getByRole("heading", { name: "Daily review complete." }),
+    page.getByRole("heading", { name: "Daily review complete", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Back to Home" }).click();
   await page.reload();
@@ -96,12 +101,24 @@ test("home separates activities and daily completion survives reload without arc
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("everyday-chinese-v1")!),
   );
-  expect(saved.cards.every((c: Card) => c.status === "active")).toBe(true);
-  expect(saved.cards[0].intervalDays).toBe(3);
-  expect(saved.cards[1].intervalDays).toBe(1);
+  expect(
+    saved.cards.every((c: Card) => c.status === "active" && c.reviews === 1),
+  ).toBe(true);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  const navigation = page.locator(
+    (await page.locator(".mobile-nav").isVisible())
+      ? ".mobile-nav"
+      : ".sidebar nav",
+  );
+  await navigation.getByRole("button", { name: /^Review/ }).click();
+  await page
+    .getByRole("button", { name: "Extra practice", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Reveal meaning", exact: true }),
+  ).toBeVisible();
 });

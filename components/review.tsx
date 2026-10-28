@@ -160,6 +160,21 @@ export default function Review({
               Start review <ArrowRight size={18} />
             </button>
           </div>
+          <button
+            className="primary"
+            disabled={!state.cards.some((card) => card.status === "active")}
+            onClick={() => {
+              setSession(
+                createReviewSession(
+                  state.cards.filter((card) => card.status === "active"),
+                ),
+              );
+              setCursor(0);
+              setFlipped(false);
+            }}
+          >
+            Extra practice
+          </button>
           {state.cards.some(
             (c) => c.status === "archived" && c.dueAt <= now,
           ) && (

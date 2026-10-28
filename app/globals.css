@@ -1585,89 +1585,32 @@ main {
 .daily-activities {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
+  gap: 24px;
 }
 .daily-activity {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 16px;
-  padding: 28px;
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  gap: 18px;
+  padding: 24px 0;
 }
+.daily-activity h1,
 .daily-activity h2 {
   margin: 0;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 400;
-}
-.daily-activity p {
-  color: var(--muted);
-  line-height: 1.8;
-  margin: 0;
-  font-size: 14px;
-}
-.daily-activity .primary,
-.daily-activity .secondary {
-  margin-top: auto;
-}
-.activity-status {
-  color: var(--green);
-  font-size: 12px;
 }
 .daily-review h1 {
-  font-size: 26px;
-  font-weight: 400;
-  margin: 20px 0;
-}
-.review-prompt {
-  font-size: 22px;
-  line-height: 1.9;
-  overflow-wrap: anywhere;
-}
-.daily-review label {
-  display: block;
-  font-size: 13px;
-  margin: 24px 0 10px;
-}
-.daily-review input {
-  width: 100%;
-  padding: 13px;
-  border: 1px solid var(--line);
-  background: var(--white);
-  border-radius: 5px;
-  color: var(--ink);
-  font-size: 20px;
-}
-.daily-review .muted {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.8;
-}
-.recall-feedback {
-  margin-top: 24px;
-  padding: 24px;
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-.recall-feedback h2 {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 400;
 }
-.recall-feedback blockquote {
-  margin: 20px 0;
-  line-height: 1.9;
-  font-family: var(--serif);
-  font-size: 20px;
+.daily-review .next-card {
+  margin-top: 20px;
 }
 @media (max-width: 760px) {
   .daily-activities {
     grid-template-columns: 1fr;
-  }
-  .daily-activity {
-    padding: 22px;
+    gap: 0;
   }
 }
 .import-label {

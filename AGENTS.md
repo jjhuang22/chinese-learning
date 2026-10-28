@@ -8,7 +8,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-## Validation before pushing
+## Interface preferences
+
+- Keep UI labels and copy plain and minimal. Avoid motivational taglines, decorative icons, numbered section labels, and explanatory copy where a label and button suffice.
+- Use the same color for comparable action buttons, including Daily review and Daily lesson.
+
+## Validation requirements
 
 - Before pushing application or test changes, run `npm run check` on the final code. This is the same complete gate as `.github/workflows/checks.yml`: formatting, production build, TypeScript, database tests, desktop/mobile app tests, privacy tests, and passcode tests. Targeted tests are useful during development but do not replace this gate. Fix failures before pushing; if a check cannot run, report the limitation explicitly.
 - When changing navigation labels, badges, button text, or accessible names, search all tests for affected role/name selectors, including `tests/passcode` and `tests/privacy`. Preserve assertions about behavior and update selectors to support intentional dynamic counts. Check desktop and mobile, public and editing modes where applicable.

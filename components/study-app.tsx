@@ -7,18 +7,9 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import {
-  BookOpen,
-  Home,
-  Library,
-  Layers,
-  Check,
-  Plus,
-  X,
-  ArrowRight,
-} from "lucide-react";
+import { BookOpen, Home, Library, Layers, Check, Plus, X } from "lucide-react";
 import DailyReview from "./daily-review";
-import { scheduleRecall } from "@/lib/daily-review";
+import { recordDailyReview } from "@/lib/daily-review";
 import Reader from "./reader";
 import Review from "./review";
 import LessonLibrary from "./lesson-library";
@@ -439,46 +430,13 @@ export default function StudyApp({
               emptyLessons
             ) : (
               <>
-                <span className="eyebrow">
-                  {new Date(today + "T12:00:00").toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </span>
-                <div className="page-heading">
-                  <h1>Your daily practice.</h1>
-                  <p>A little review, then something new to read.</p>
-                </div>
                 <div className="daily-activities">
                   <section className="daily-activity">
-                    <Layers size={25} />
-                    <span className="eyebrow">01 · REINFORCE</span>
-                    <h2>Daily review</h2>
-                    <span className="activity-status">
-                      {!canEdit
-                        ? "Your personal practice"
-                        : reviewDone
-                          ? "Complete today ✓"
-                          : due.length
-                            ? "Ready for today"
-                            : "No words due"}
-                    </span>
-                    <p>
-                      {!canEdit
-                        ? "Unlock your saved vocabulary and daily progress with your editing password."
-                        : reviewDone
-                          ? "You’ve practiced today. Come back tomorrow for your next session."
-                          : due.length
-                            ? `Up to ${Math.min(8, due.length)} words · about 5 minutes. Start with sentence context, then mix your recall.`
-                            : active.length
-                              ? "Your words are scheduled for later. Keep reading today."
-                              : "Save a few words from a lesson to start your daily review."}
-                    </p>
+                    <h1>Daily review</h1>
                     <button
                       className="primary"
                       disabled={
-                        canEdit && (!loaded || reviewDone || !due.length)
+                        canEdit && (!loaded || reviewDone || !active.length)
                       }
                       onClick={() =>
                         canEdit ? navigate("daily-review") : requestEditing()
@@ -489,42 +447,12 @@ export default function StudyApp({
                         : reviewDone
                           ? "Review complete"
                           : "Start daily review"}
-                      <ArrowRight size={17} />
                     </button>
-                    {canEdit && (
-                      <button
-                        className="text-button"
-                        onClick={() => navigate("review")}
-                      >
-                        Browse your words
-                      </button>
-                    )}
                   </section>
                   <section className="daily-activity">
-                    <BookOpen size={25} />
-                    <span className="eyebrow">02 · DISCOVER</span>
                     <h2>Daily lesson</h2>
-                    <span className="activity-status">
-                      {latestLesson
-                        ? canEdit && viewState.read.includes(latestLesson.id)
-                          ? "Read ✓"
-                          : latestLesson.date === today
-                            ? "New today"
-                            : `Latest lesson · ${latestLesson.date}`
-                        : "No lesson yet"}
-                    </span>
-                    <p lang="zh-Hant">
-                      {latestLesson?.title ??
-                        "Import a lesson to begin reading."}
-                    </p>
-                    {latestLesson && latestLesson.date !== today && (
-                      <p className="muted">
-                        No new lesson for today yet. Your latest reading is
-                        ready.
-                      </p>
-                    )}
                     <button
-                      className="secondary"
+                      className="primary"
                       disabled={!loaded || !latestLesson}
                       onClick={() =>
                         latestLesson && openLesson(latestLesson.id)
@@ -533,7 +461,6 @@ export default function StudyApp({
                       {latestLesson && viewState.read.includes(latestLesson.id)
                         ? "Read lesson again"
                         : "Read daily lesson"}
-                      <ArrowRight size={17} />
                     </button>
                   </section>
                 </div>
@@ -543,13 +470,12 @@ export default function StudyApp({
             (canEdit && loaded ? (
               <DailyReview
                 cards={viewState.cards}
-                lessons={lessons}
                 onHome={() => navigate("home")}
-                onResult={(id, recalled) =>
+                onReviewed={(id) =>
                   setState((prev) => ({
                     ...prev,
                     cards: prev.cards.map((c) =>
-                      c.id === id ? scheduleRecall(c, recalled) : c,
+                      c.id === id ? recordDailyReview(c) : c,
                     ),
                   }))
                 }

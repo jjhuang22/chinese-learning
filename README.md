@@ -52,7 +52,7 @@ Demo servers are for trusted local use. The commands bind to all network interfa
 
 ## Reading and review
 
-- Home separates **Daily review** from the latest **Daily lesson**, with independent completion states. Daily review selects up to eight overdue saved words, starts with up to two sentence gap-fills, and shuffles the remaining meaning-to-Chinese recall questions. Hints and misses return tomorrow; unaided recall expands spacing from three days up to thirty. Words stay active. Completion follows the America/New_York calendar day and syncs through the existing private progress endpoint; no database migration is required. Public readers can open lessons and unlock their private daily review with the editing password.
+- Home has **Daily review** and **Daily lesson** buttons. Daily review draws up to ten random active cards, with characters/pinyin first and meaning/context on reveal. Choose **Next** to continue; there is no typing or scoring. Completion follows the America/New_York calendar day and syncs through the existing private progress endpoint. The Review tab remains available for extra practice and card management. Public readers unlock daily review with the editing password.
 - Read two or three related passages per lesson. Pinyin starts on; turn off Show all pinyin to reveal individual sentences by tapping.
 - Tap highlighted vocabulary for contextual meaning. Save suggestions individually or in bulk; dismissed suggestions stay out of bulk saves.
 - Select another phrase to create a card with dictionary-generated pinyin and a meaning you enter. Manually saved phrases receive the same accepted-vocabulary highlighting in their source lesson. Card identity ignores spacing and common punctuation.
