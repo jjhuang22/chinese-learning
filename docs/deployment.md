@@ -23,7 +23,7 @@ Run the entire [schema.sql](../supabase/schema.sql) in Supabase SQL Editor. It i
 
 The schema removes legacy authenticated-browser permissions, retains server-only access, adds a progress revision column and `save_progress` function, and installs the durable unlock limiter. Deploy the new application only after applying it. Previously open app versions must reload because saves now require a revision.
 
-Use the repository root as Vercel's Root Directory. Vercel detects Next.js and uses its default build/output settings. Deploy the reviewed commit with the four variables configured.
+Use the repository root as Vercel's Root Directory. Keep [vercel.json](../vercel.json): it explicitly selects the Next.js framework, build command, and `.next` output for this project's hosting settings. Deploy the reviewed commit with the four variables configured.
 
 ## Verify
 
