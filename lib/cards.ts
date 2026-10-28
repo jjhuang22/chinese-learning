@@ -46,3 +46,20 @@ export function rateCard(card: Card, archive: boolean, now = Date.now()): Card {
     dueAt: now + (archive ? 30 : Math.min(7, card.reviews + 1)) * DAY,
   };
 }
+
+// Change deck membership without changing today's selected cards or review progress.
+export function changeCardStatus(
+  state: StudyState,
+  id: string,
+  status: Card["status"],
+  now = Date.now(),
+): StudyState {
+  return {
+    ...state,
+    cards: state.cards.map((card) =>
+      card.id === id
+        ? { ...card, status, dueAt: status === "active" ? now : card.dueAt }
+        : card,
+    ),
+  };
+}

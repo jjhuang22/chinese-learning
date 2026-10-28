@@ -8,6 +8,9 @@
   --wash: #eaf0e7;
   --serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
 }
+html {
+  scrollbar-gutter: stable;
+}
 * {
   box-sizing: border-box;
 }
@@ -720,14 +723,16 @@ main {
 }
 .deck-list article {
   cursor: pointer;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr) 80px;
   align-items: center;
   gap: 20px;
   padding: 21px 0;
   border-bottom: 1px solid var(--line);
 }
 .deck-word {
-  min-width: 140px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   text-align: left;
   padding: 0;
 }
@@ -749,6 +754,7 @@ main {
 }
 .deck-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 14px;
   align-items: center;
 }
@@ -925,6 +931,9 @@ main {
   justify-content: space-between;
   border-top: 1px solid var(--line);
   padding-top: 21px;
+}
+.dialog-actions > .primary {
+  border: 1px solid transparent;
 }
 .source-link {
   display: flex;
@@ -1302,6 +1311,7 @@ main {
     width: 100%;
   }
   .deck-list article {
+    grid-template-columns: minmax(0, 1fr) 80px;
     gap: 12px;
     flex-wrap: wrap;
   }
@@ -1313,6 +1323,7 @@ main {
     font-size: 22px;
   }
   .deck-meaning {
+    grid-column: 1 / -1;
     flex-basis: 100%;
     order: 3;
     font-size: 11px;
@@ -1840,4 +1851,20 @@ main {
 .editing-trigger {
   font-size: 12px;
   min-height: 40px;
+}
+
+.card-archive-button {
+  min-width: 76px;
+  min-height: 32px;
+}
+.card-archive-slot {
+  display: inline-flex;
+  width: 76px;
+  min-height: 32px;
+}
+.session-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 44px;
+  padding-top: 12px;
 }

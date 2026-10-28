@@ -325,3 +325,110 @@ test("Finish review is enabled on every card and early completion persists witho
   expect(saved.dailyReview.seenIds).toEqual([]);
   expect(saved.cards.every((c: Card) => c.reviews === 0)).toBe(true);
 });
+
+test("archiving during daily review preserves today's cards and persists across reloads", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (cards) => {
+      if (!localStorage.getItem("everyday-chinese-v1"))
+        localStorage.setItem(
+          "everyday-chinese-v1",
+          JSON.stringify({ cards, dismissed: [], read: [], feedback: {} }),
+        );
+    },
+    [card, { ...card, id: "word-2", text: "每天" }],
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start review", exact: true }).click();
+  const text = await page.locator(".flashcard h2").innerText();
+  await expect(page.getByText("1 / 2", { exact: true })).toBeVisible();
+  await page
+    .locator(".session-card-actions")
+    .getByRole("button", { name: "Archive", exact: true })
+    .click();
+  await expect(page.locator(".flashcard h2")).toHaveText(text);
+  await expect(page.getByText("1 / 2", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Reveal meaning", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page.getByRole("button", { name: "Previous", exact: true }).click();
+  await expect(page.locator(".flashcard h2")).toHaveText(text);
+  await expect(
+    page
+      .locator(".session-card-actions")
+      .getByRole("button", { name: "Restore", exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Start review", exact: true }).click();
+  await expect(page.locator(".flashcard h2")).toHaveText(text);
+  await expect(page.getByText("1 / 2", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Finish review", exact: true })
+    .click();
+  await nav(page, "Review");
+  await expect(
+    page.locator(".deck-word").filter({ hasText: text }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Archived", exact: true }).click();
+  await expect(page.locator(".deck-word")).toContainText(text);
+  const saved = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("everyday-chinese-v1")!),
+  );
+  const tomorrow = startDailySet(saved, "2099-01-01");
+  expect(tomorrow.dailyReview?.cardIds).toHaveLength(1);
+  expect(tomorrow.dailyReview?.cardIds).not.toContain(
+    saved.cards.find((c: Card) => c.text === text).id,
+  );
+});
+
+test("Review columns and card details remain aligned across archive, restore, and unsave", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (cards) => {
+      localStorage.setItem(
+        "everyday-chinese-v1",
+        JSON.stringify({ cards, dismissed: [], read: [], feedback: {} }),
+      );
+    },
+    [card, { ...card, id: "word-2", text: "每天" }],
+  );
+  await page.goto("/");
+  await nav(page, "Review");
+  const row = page
+    .locator(".deck-list article")
+    .filter({ has: page.locator(".deck-word > span", { hasText: "學習" }) });
+  const positions = async () =>
+    Promise.all(
+      [".deck-word", ".deck-meaning", ".deck-actions"].map(
+        async (selector) => (await row.locator(selector).boundingBox())!.x,
+      ),
+    );
+  const activePositions = await positions();
+  await row.locator(".deck-word").click();
+  const dialog = page.getByRole("dialog");
+  const height = (await dialog.boundingBox())!.height;
+  await expect(dialog).not.toContainText("again to remove this card");
+  await dialog.getByRole("button", { name: "Archive", exact: true }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Restore", exact: true }),
+  ).toBeVisible();
+  expect((await dialog.boundingBox())!.height).toBe(height);
+  await dialog.getByRole("button", { name: "Close dialog" }).click();
+  for (const filter of ["Archived", "All"]) {
+    await page.getByRole("button", { name: filter, exact: true }).click();
+    expect(await positions()).toEqual(activePositions);
+  }
+  await row.locator(".deck-word").click();
+  await dialog.getByRole("button", { name: "Restore", exact: true }).click();
+  expect((await dialog.boundingBox())!.height).toBe(height);
+  await dialog
+    .getByRole("button", { name: "Saved to review", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("button", { name: "Save flashcard", exact: true }),
+  ).toBeVisible();
+  expect((await dialog.boundingBox())!.height).toBe(height);
+});

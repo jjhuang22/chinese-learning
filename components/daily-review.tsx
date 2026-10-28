@@ -1,4 +1,5 @@
 "use client";
+import CardArchiveButton from "./card-archive-button";
 import { useState } from "react";
 import { Card, StudyState } from "@/lib/model";
 
@@ -8,12 +9,14 @@ export default function DailyReview({
   onReviewed,
   onComplete,
   onHome,
+  onStatusChange,
 }: {
   cards: Card[];
   session: NonNullable<StudyState["dailyReview"]>;
   onReviewed: (id: string) => void;
   onComplete: () => void;
   onHome: () => void;
+  onStatusChange: (id: string, status: Card["status"]) => void;
 }) {
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState<string[]>([]);
@@ -82,6 +85,9 @@ export default function DailyReview({
           <span className="flip-hint">Reveal meaning</span>
         )}
       </button>
+      <div className="session-card-actions">
+        <CardArchiveButton card={card} onChange={onStatusChange} />
+      </div>
       <button
         className="primary next-card"
         onClick={() => {

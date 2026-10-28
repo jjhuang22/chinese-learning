@@ -32,7 +32,7 @@ import {
   StudyState,
   Suggestion,
 } from "@/lib/model";
-import { addCards, cardCollision } from "@/lib/cards";
+import { addCards, cardCollision, changeCardStatus } from "@/lib/cards";
 import { downloadJson } from "@/lib/download";
 import { PROGRESS_STORAGE } from "@/hooks/use-progress";
 import { useProgress } from "@/hooks/use-progress";
@@ -258,6 +258,14 @@ export default function StudyApp({
     setState((prev) => addCards(prev, [s], lesson.id));
     setNotice("Saved to your review deck");
     return true;
+  }
+  function onCardStatusChange(id: string, status: Card["status"]) {
+    if (!canEdit) {
+      requestEditing();
+      return;
+    }
+    setState((prev) => changeCardStatus(prev, id, status));
+    setNotice(status === "archived" ? "Card archived" : "Card restored");
   }
   function unsaveCard(card: Card) {
     if (!canEdit) {
@@ -518,6 +526,7 @@ export default function StudyApp({
                 cards={viewState.cards}
                 session={viewState.dailyReview}
                 onHome={() => navigate("home")}
+                onStatusChange={onCardStatusChange}
                 onReviewed={(id) => setState((prev) => viewDailyCard(prev, id))}
                 onComplete={() => setState(finishDailySet)}
               />
@@ -569,6 +578,7 @@ export default function StudyApp({
                 setModal={openCard}
                 navigate={navigate}
                 now={now}
+                onStatusChange={onCardStatusChange}
               />
             ) : (
               <section className="empty-state">
@@ -652,6 +662,7 @@ export default function StudyApp({
             if (saveCard(s)) setModal(null);
           }}
           onUnsave={unsaveCard}
+          onStatusChange={onCardStatusChange}
           onSource={() => {
             const c = findCard(viewState.cards, modal.text);
             if (c) {

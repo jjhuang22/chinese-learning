@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Dialog from "./dialog";
+import CardArchiveButton from "./card-archive-button";
 import type { Card, Suggestion } from "@/lib/model";
 import { ArrowUpRight, Check, Plus } from "lucide-react";
 export default function CardDialog({
@@ -14,6 +15,7 @@ export default function CardDialog({
   onSource,
   canEdit,
   onRequestEditing,
+  onStatusChange,
 }: {
   suggestion: Suggestion;
   existing?: Card;
@@ -25,6 +27,7 @@ export default function CardDialog({
   onSource: () => void;
   canEdit: boolean;
   onRequestEditing: () => void;
+  onStatusChange: (id: string, status: Card["status"]) => void;
 }) {
   const [draft, setDraft] = useState(suggestion);
   const [editing, setEditing] = useState(!suggestion.meaning);
@@ -130,6 +133,20 @@ export default function CardDialog({
             >
               Edit card
             </button>
+            <span className="card-archive-slot">
+              {existing && (
+                <CardArchiveButton
+                  card={existing}
+                  onChange={(id, status) => {
+                    if (!canEdit) {
+                      onRequestEditing();
+                      return;
+                    }
+                    onStatusChange(id, status);
+                  }}
+                />
+              )}
+            </span>
             <button
               className={existing ? "secondary" : "primary"}
               disabled={existing?.status === "archived"}
@@ -147,16 +164,14 @@ export default function CardDialog({
                 : "Save flashcard"}
             </button>
           </div>
-          {existing?.status === "active" && (
-            <p className="muted">
-              Click “Saved to review” again to remove this card.
-            </p>
-          )}
-          {existing && (
-            <button className="source-link" onClick={onSource}>
-              Return to original lesson <ArrowUpRight size={14} />
-            </button>
-          )}
+          <button
+            className="source-link"
+            onClick={onSource}
+            disabled={!existing}
+            style={{ visibility: existing ? "visible" : "hidden" }}
+          >
+            Return to original lesson <ArrowUpRight size={14} />
+          </button>
         </>
       )}
     </Dialog>

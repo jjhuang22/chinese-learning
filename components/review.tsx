@@ -10,8 +10,9 @@ import {
   CheckCheck,
 } from "lucide-react";
 import { useState, type Dispatch, type SetStateAction } from "react";
-import type { StudyState, Suggestion } from "@/lib/model";
-import { rateCard, DAY } from "@/lib/cards";
+import CardArchiveButton from "./card-archive-button";
+import type { Card, StudyState, Suggestion } from "@/lib/model";
+import { rateCard } from "@/lib/cards";
 import { matchesCardSearch } from "@/lib/card-search";
 import { createReviewSession } from "@/lib/review-session";
 export default function Review({
@@ -20,12 +21,14 @@ export default function Review({
   setModal,
   navigate,
   now,
+  onStatusChange,
 }: {
   state: StudyState;
   setState: Dispatch<SetStateAction<StudyState>>;
   setModal: (suggestion: Suggestion) => void;
   navigate: (page: "today") => void;
   now: number;
+  onStatusChange: (id: string, status: Card["status"]) => void;
 }) {
   const active = state.cards.filter((c) => c.status === "active");
   const [filter, setFilter] = useState<"active" | "archived" | "all">("active");
@@ -241,49 +244,11 @@ export default function Review({
                   </button>
                   <span className="deck-meaning">{c.meaning}</span>
                   <div className="deck-actions">
-                    {c.status === "archived" ? (
-                      <button
-                        className="text-button"
-                        onClick={() =>
-                          setState((prev) => ({
-                            ...prev,
-                            cards: prev.cards.map((x) =>
-                              x.id === c.id
-                                ? {
-                                    ...x,
-                                    status: "active",
-                                    dueAt: Date.now(),
-                                  }
-                                : x,
-                            ),
-                          }))
-                        }
-                      >
-                        <RotateCcw size={14} />
-                        Restore
-                      </button>
-                    ) : (
-                      <button
-                        className="icon-button"
-                        aria-label={`Archive ${c.text}`}
-                        onClick={() =>
-                          setState((prev) => ({
-                            ...prev,
-                            cards: prev.cards.map((x) =>
-                              x.id === c.id
-                                ? {
-                                    ...x,
-                                    status: "archived",
-                                    dueAt: Date.now() + 30 * DAY,
-                                  }
-                                : x,
-                            ),
-                          }))
-                        }
-                      >
-                        <Archive size={16} />
-                      </button>
-                    )}
+                    <CardArchiveButton
+                      card={c}
+                      onChange={onStatusChange}
+                      identifyCard={c.status === "active"}
+                    />
                   </div>
                 </article>
               ))}
