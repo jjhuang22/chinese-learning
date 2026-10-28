@@ -1,52 +1,96 @@
 "use client";
 import { useState } from "react";
-import { Card } from "@/lib/model";
-import { selectDailyCards } from "@/lib/daily-review";
+import { Card, StudyState } from "@/lib/model";
 
 export default function DailyReview({
   cards,
+  session,
   onReviewed,
   onComplete,
   onHome,
 }: {
   cards: Card[];
+  session: NonNullable<StudyState["dailyReview"]>;
   onReviewed: (id: string) => void;
   onComplete: () => void;
   onHome: () => void;
 }) {
-  const [session] = useState(() => selectDailyCards(cards));
   const [index, setIndex] = useState(0);
-  const [revealed, setRevealed] = useState(false);
-  const card = session[index];
-  if (!card)
+  const [revealed, setRevealed] = useState<string[]>([]);
+  const [finished, setFinished] = useState(false);
+  const selected = session.cardIds.flatMap((id) => {
+    const card = cards.find((c) => c.id === id);
+    return card ? [card] : [];
+  });
+  const card = selected[index];
+  const allSeen =
+    selected.length > 0 &&
+    selected.every((c) => session.seenIds.includes(c.id));
+  if (finished || !card)
     return (
-      <section className="daily-review">
-        <h1>{session.length ? "Daily review complete" : "No saved cards"}</h1>
-        <button className="primary" onClick={onHome}>
-          Back to Home
-        </button>
+      <section className="review-session daily-review daily-complete">
+        <h1>{selected.length ? "Daily review complete" : "No saved cards"}</h1>
+        <div className="daily-complete-actions">
+          {selected.length > 0 && (
+            <button
+              className="primary"
+              onClick={() => {
+                setIndex(0);
+                setRevealed([]);
+                setFinished(false);
+              }}
+            >
+              Review these again
+            </button>
+          )}
+          <button className="primary" onClick={onHome}>
+            Back to Home
+          </button>
+        </div>
       </section>
     );
+  const visible = revealed.includes(card.id);
   return (
     <section className="review-session daily-review">
       <div className="session-header">
         <button className="text-button" onClick={onHome}>
           Back to Home
         </button>
-        <span>
-          {index + 1} / {session.length}
-        </span>
       </div>
       <h1>Daily review</h1>
+      <div className="daily-card-navigation" aria-label="Card navigation">
+        <button
+          className="secondary"
+          disabled={index === 0}
+          onClick={() => setIndex((i) => i - 1)}
+        >
+          Previous
+        </button>
+        <span aria-live="polite">
+          {index + 1} / {selected.length}
+        </span>
+        <button
+          className="secondary"
+          disabled={index === selected.length - 1}
+          onClick={() => setIndex((i) => i + 1)}
+        >
+          Next
+        </button>
+      </div>
       <button
         className="flashcard"
-        onClick={() => setRevealed((v) => !v)}
-        aria-label={revealed ? "Hide meaning" : "Reveal meaning"}
-        aria-expanded={revealed}
+        onClick={() => {
+          if (!visible) onReviewed(card.id);
+          setRevealed((prev) =>
+            visible ? prev.filter((id) => id !== card.id) : [...prev, card.id],
+          );
+        }}
+        aria-label={visible ? "Hide meaning" : "Reveal meaning"}
+        aria-expanded={visible}
       >
         <h2 lang="zh-Hant">{card.text}</h2>
         <div className="card-pinyin">{card.pinyin}</div>
-        {revealed ? (
+        {visible ? (
           <div className="card-answer">
             <p>{card.meaning}</p>
             <blockquote lang="zh-Hant">{card.sentence}</blockquote>
@@ -55,17 +99,16 @@ export default function DailyReview({
           <span className="flip-hint">Reveal meaning</span>
         )}
       </button>
-      {revealed && (
+      {index === selected.length - 1 && (
         <button
           className="primary next-card"
+          disabled={!allSeen}
           onClick={() => {
-            onReviewed(card.id);
-            if (index === session.length - 1) onComplete();
-            setIndex((i) => i + 1);
-            setRevealed(false);
+            onComplete();
+            setFinished(true);
           }}
         >
-          {index === session.length - 1 ? "Finish review" : "Next"}
+          Finish review
         </button>
       )}
     </section>

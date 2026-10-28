@@ -1586,37 +1586,102 @@ main {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
+  padding-top: 38px;
 }
 .daily-activity {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 18px;
-  padding: 28px;
+  justify-content: space-between;
+  min-height: 208px;
+  gap: 36px;
+  padding: 30px;
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px #36432704;
+}
+.daily-activity-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.daily-activity-heading > svg {
+  color: #7c8e70;
+  flex-shrink: 0;
 }
 .daily-activity h1,
 .daily-activity h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 23px;
   font-weight: 400;
+  line-height: 1.4;
+}
+.activity-complete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--green);
+  background: #edf2e7;
+  border-radius: 50%;
+}
+.daily-activity > .primary {
+  min-width: 154px;
+  min-height: 44px;
+  justify-content: center;
 }
 .daily-review h1 {
   font-size: 24px;
   font-weight: 400;
+  margin: 24px 0;
+}
+.daily-card-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 22px 0;
+}
+.daily-card-navigation > span {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.daily-card-navigation > button {
+  min-width: 96px;
+  min-height: 42px;
+  justify-content: center;
 }
 .daily-review .next-card {
-  margin-top: 20px;
+  margin-top: 22px;
+}
+.daily-complete {
+  padding-top: 24px;
+}
+.daily-complete-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 @media (max-width: 760px) {
   .daily-activities {
     grid-template-columns: 1fr;
     gap: 18px;
+    padding-top: 16px;
   }
   .daily-activity {
-    padding: 22px;
+    padding: 26px;
+    min-height: 180px;
+    gap: 30px;
+  }
+  .daily-activity h1,
+  .daily-activity h2 {
+    font-size: 22px;
   }
 }
 .import-label {

@@ -9,7 +9,11 @@ import {
 } from "react";
 import { BookOpen, Home, Library, Layers, Check, Plus, X } from "lucide-react";
 import DailyReview from "./daily-review";
-import { recordDailyReview } from "@/lib/daily-review";
+import {
+  startDailySet,
+  viewDailyCard,
+  finishDailySet,
+} from "@/lib/daily-review";
 import Reader from "./reader";
 import Review from "./review";
 import LessonLibrary from "./lesson-library";
@@ -151,7 +155,6 @@ export default function StudyApp({
       notes: [],
     };
   const active = viewState.cards.filter((c) => c.status === "active");
-  const due = active.filter((c) => c.dueAt <= Date.now());
   const unread = canEdit
     ? lessons.filter((lesson) => !viewState.read.includes(lesson.id)).length
     : 0;
@@ -159,6 +162,20 @@ export default function StudyApp({
   const today = localDate(new Date(now));
   const latestLesson = lessons.filter((l) => l.date <= today).at(-1);
   const reviewDone = viewState.reviewedOn === today;
+  const lessonDone = !!latestLesson && viewState.read.includes(latestLesson.id);
+  const savedDailyCards =
+    viewState.dailyReview?.date === today &&
+    viewState.dailyReview.cardIds.some((id) =>
+      viewState.cards.some((card) => card.id === id),
+    );
+  function openDailyReview() {
+    if (!canEdit) {
+      requestEditing();
+      return;
+    }
+    setState((prev) => startDailySet(prev));
+    navigate("daily-review");
+  }
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(t);
@@ -347,8 +364,8 @@ export default function StudyApp({
                   {unread}
                 </span>
               )}
-              {item.id === "review" && due.length > 0 && (
-                <span className="count">{due.length}</span>
+              {item.id === "review" && active.length > 0 && (
+                <span className="count">{active.length}</span>
               )}
             </button>
           ))}
@@ -432,27 +449,48 @@ export default function StudyApp({
               <>
                 <div className="daily-activities">
                   <section className="daily-activity">
-                    <Layers size={25} aria-hidden="true" />
-                    <h1>Daily review</h1>
+                    <div className="daily-activity-heading">
+                      <Layers size={23} aria-hidden="true" />
+                      <h1>Daily review</h1>
+                      {reviewDone && (
+                        <span
+                          className="activity-complete"
+                          role="img"
+                          aria-label="Daily review completed"
+                        >
+                          <Check size={17} aria-hidden="true" />
+                        </span>
+                      )}
+                    </div>
                     <button
                       className="primary"
                       disabled={
-                        canEdit && (!loaded || reviewDone || !active.length)
+                        canEdit &&
+                        (!loaded || (!active.length && !savedDailyCards))
                       }
-                      onClick={() =>
-                        canEdit ? navigate("daily-review") : requestEditing()
-                      }
+                      onClick={openDailyReview}
                     >
                       {!canEdit
                         ? "Unlock daily review"
                         : reviewDone
-                          ? "Review complete"
-                          : "Start daily review"}
+                          ? "Review again"
+                          : "Start review"}
                     </button>
                   </section>
                   <section className="daily-activity">
-                    <BookOpen size={25} aria-hidden="true" />
-                    <h2>Daily lesson</h2>
+                    <div className="daily-activity-heading">
+                      <BookOpen size={23} aria-hidden="true" />
+                      <h2>Daily lesson</h2>
+                      {lessonDone && (
+                        <span
+                          className="activity-complete"
+                          role="img"
+                          aria-label="Daily lesson completed"
+                        >
+                          <Check size={17} aria-hidden="true" />
+                        </span>
+                      )}
+                    </div>
                     <button
                       className="primary"
                       disabled={!loaded || !latestLesson}
@@ -460,30 +498,21 @@ export default function StudyApp({
                         latestLesson && openLesson(latestLesson.id)
                       }
                     >
-                      {latestLesson && viewState.read.includes(latestLesson.id)
-                        ? "Read lesson again"
-                        : "Read daily lesson"}
+                      {lessonDone ? "Read again" : "Read lesson"}
                     </button>
                   </section>
                 </div>
               </>
             ))}
           {page === "daily-review" &&
-            (canEdit && loaded ? (
+            (canEdit && loaded && viewState.dailyReview ? (
               <DailyReview
+                key={viewState.dailyReview.date}
                 cards={viewState.cards}
+                session={viewState.dailyReview}
                 onHome={() => navigate("home")}
-                onReviewed={(id) =>
-                  setState((prev) => ({
-                    ...prev,
-                    cards: prev.cards.map((c) =>
-                      c.id === id ? recordDailyReview(c) : c,
-                    ),
-                  }))
-                }
-                onComplete={() =>
-                  setState((prev) => ({ ...prev, reviewedOn: localDate() }))
-                }
+                onReviewed={(id) => setState((prev) => viewDailyCard(prev, id))}
+                onComplete={() => setState(finishDailySet)}
               />
             ) : (
               <section className="empty-state">
@@ -563,7 +592,9 @@ export default function StudyApp({
             <span>
               {item.label}
               {item.id === "library" && unread ? ` · ${unread}` : ""}
-              {item.id === "review" && due.length ? ` · ${due.length}` : ""}
+              {item.id === "review" && active.length
+                ? ` · ${active.length}`
+                : ""}
             </span>
           </button>
         ))}

@@ -1,4 +1,4 @@
-import { Card, cardKey } from "./model";
+import { Card, cardKey, StudyState, localDate } from "./model";
 import { createReviewSession } from "./review-session";
 import { DAY } from "./cards";
 
@@ -20,4 +20,50 @@ export function recordDailyReview(card: Card, now = Date.now()): Card {
     reviews: card.reviews + 1,
     dueAt: Math.max(card.dueAt, now + DAY),
   };
+}
+
+export function startDailySet(
+  state: StudyState,
+  date = localDate(),
+): StudyState {
+  if (state.dailyReview?.date === date) return state;
+  return {
+    ...state,
+    dailyReview: {
+      date,
+      cardIds: selectDailyCards(state.cards).map((card) => card.id),
+      seenIds: [],
+    },
+  };
+}
+
+export function viewDailyCard(
+  state: StudyState,
+  id: string,
+  now = Date.now(),
+): StudyState {
+  const session = state.dailyReview;
+  if (!session || !session.cardIds.includes(id) || session.seenIds.includes(id))
+    return state;
+  return {
+    ...state,
+    dailyReview: { ...session, seenIds: [...session.seenIds, id] },
+    cards: state.cards.map((card) =>
+      card.id === id ? recordDailyReview(card, now) : card,
+    ),
+  };
+}
+
+export function finishDailySet(state: StudyState): StudyState {
+  const session = state.dailyReview;
+  if (!session) return state;
+  const available = session.cardIds.filter((id) =>
+    state.cards.some((card) => card.id === id),
+  );
+  if (
+    !available.length ||
+    !available.every((id) => session.seenIds.includes(id))
+  )
+    return state;
+  return { ...state, reviewedOn: session.date };
 }

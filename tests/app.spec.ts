@@ -568,7 +568,7 @@ test("Archive unread count follows read status and persists after reload", async
 });
 async function openDailyLesson(page: import("@playwright/test").Page) {
   const lesson = page.getByRole("button", {
-    name: /Read (daily lesson|lesson again)/,
+    name: /^(Read lesson|Read again)$/,
   });
   if (await lesson.count()) await lesson.click();
 }

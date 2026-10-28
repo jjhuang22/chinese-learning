@@ -797,7 +797,7 @@ test("expired editing access keeps reading available and pending changes survive
 });
 async function openDailyLesson(page: import("@playwright/test").Page) {
   const lesson = page.getByRole("button", {
-    name: /Read (daily lesson|lesson again)/,
+    name: /^(Read lesson|Read again)$/,
   });
   if (await lesson.count()) await lesson.click();
 }
@@ -951,4 +951,106 @@ test("a failed save keeps the app unlocked and locking can be retried", async ({
     page.getByRole("button", { name: "Enable editing", exact: true }),
   ).toBeVisible();
   expect(locks).toBe(1);
+});
+
+test("daily set and completion sync to a fresh browser session without exposing progress publicly", async ({
+  request,
+  page,
+  browser,
+}) => {
+  const token = await unlock(request);
+  const headers = { Cookie: `everyday_session=${token}`, Origin: origin };
+  const fixture = JSON.parse(
+    await readFile("lib/sample-lessons.json", "utf8"),
+  )[1];
+  const cards = fixture.suggestions.slice(0, 2).map((s: object, i: number) => ({
+    ...s,
+    lessonId: fixture.id,
+    status: "active",
+    dueAt: 0,
+    createdAt: 0,
+    reviews: 0,
+    id: `daily-${i}`,
+  }));
+  expect(
+    (
+      await request.put("/api/progress", {
+        headers,
+        data: {
+          state: { cards, dismissed: [], read: [], feedback: {} },
+          revision: 0,
+        },
+      })
+    ).status(),
+  ).toBe(200);
+  await page.context().addCookies([
+    {
+      name: "everyday_session",
+      value: token,
+      url: origin,
+      httpOnly: true,
+      secure: false,
+      sameSite: "Strict",
+    },
+  ]);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start review", exact: true }).click();
+  const first = await page.locator(".flashcard h2").innerText();
+  await page
+    .getByRole("button", { name: "Reveal meaning", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Reveal meaning", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Finish review" }).click();
+  await expect
+    .poll(
+      async () =>
+        (await (await request.get("/api/progress", { headers })).json()).state
+          .dailyReview?.seenIds.length,
+    )
+    .toBe(2);
+  await expect
+    .poll(
+      async () =>
+        (await (await request.get("/api/progress", { headers })).json()).state
+          .reviewedOn,
+    )
+    .toBeTruthy();
+  const fresh = await browser.newContext();
+  try {
+    await fresh.addCookies([
+      {
+        name: "everyday_session",
+        value: token,
+        url: origin,
+        httpOnly: true,
+        secure: false,
+        sameSite: "Strict",
+      },
+    ]);
+    const other = await fresh.newPage();
+    await other.goto(origin);
+    await expect(
+      other.getByRole("img", { name: "Daily review completed" }),
+    ).toBeVisible();
+    await other
+      .getByRole("button", { name: "Review again", exact: true })
+      .click();
+    await expect(other.locator(".flashcard h2")).toHaveText(first);
+    await other
+      .getByRole("button", { name: "Reveal meaning", exact: true })
+      .click();
+    const saved = (
+      await (await request.get("/api/progress", { headers })).json()
+    ).state;
+    expect(saved.cards.every((c: { reviews: number }) => c.reviews === 1)).toBe(
+      true,
+    );
+    const publicResponse = await request.get("/");
+    expect(await publicResponse.text()).not.toContain('"daily-0"');
+  } finally {
+    await fresh.close();
+  }
 });

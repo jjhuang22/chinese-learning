@@ -54,6 +54,20 @@ export const cardSchema = suggestionSchema.extend({
 export const progressSchema = z
   .object({
     reviewedOn: calendarDateSchema.optional(),
+    dailyReview: z
+      .object({
+        date: calendarDateSchema,
+        cardIds: z.array(z.string().min(1)).max(10),
+        seenIds: z.array(z.string().min(1)).max(10),
+      })
+      .refine(
+        (session) =>
+          new Set(session.cardIds).size === session.cardIds.length &&
+          new Set(session.seenIds).size === session.seenIds.length &&
+          session.seenIds.every((id) => session.cardIds.includes(id)),
+        "Daily review must contain unique cards and valid viewed cards",
+      )
+      .optional(),
     cards: z.array(cardSchema).max(5000),
     dismissed: z.array(z.string()).max(20000),
     read: z.array(z.string()).max(20000),
