@@ -23,12 +23,15 @@ export default function LessonArchive({
   const unreadOnly = canEdit && filterUnread;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const read = new Set(state.read);
-  const visibleLessons = lessons
-    .filter((lesson) => !unreadOnly || !read.has(lesson.id))
-    .sort((a, b) => b.date.localeCompare(a.date));
-  // Derive defaults from the available lessons, including locally loaded imports.
-  const newestYear = visibleLessons[0]?.date.slice(0, 4);
-  const newestMonth = visibleLessons[0]?.date.slice(0, 7);
+  const sortedLessons = [...lessons].sort((a, b) =>
+    b.date.localeCompare(a.date),
+  );
+  const visibleLessons = sortedLessons.filter(
+    (lesson) => !unreadOnly || !read.has(lesson.id),
+  );
+  // Filtering changes visibility, not the default expansion of a year or month.
+  const newestYear = sortedLessons[0]?.date.slice(0, 4);
+  const newestMonth = sortedLessons[0]?.date.slice(0, 7);
   const years = new Map<string, Map<string, Lesson[]>>();
   for (const lesson of visibleLessons) {
     const year = lesson.date.slice(0, 4);
@@ -64,7 +67,6 @@ export default function LessonArchive({
               checked={unreadOnly}
               onChange={(event) => {
                 setUnreadOnly(event.target.checked);
-                setExpanded({});
               }}
             />
             Unread only

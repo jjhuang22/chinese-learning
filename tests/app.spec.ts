@@ -675,6 +675,29 @@ test("archive compacts multiple years and months, filters unread lessons, and re
   await expect(page.locator(".archive-lesson:visible").last()).toContainText(
     "Lesson 2026-10-15",
   );
+  // Both default and explicitly toggled months survive filtering, including
+  // October disappearing entirely while only unread lessons are shown.
+  const currentYear = page.locator("#archive-year-2026");
+  const october = currentYear.getByRole("button", { name: /^October / });
+  const september = currentYear.getByRole("button", { name: /^September / });
+  const unreadOnly = page.getByRole("checkbox", { name: "Unread only" });
+  for (const open of [false, true]) {
+    await october.click();
+    await unreadOnly.check();
+    await expect(september).toHaveAttribute("aria-expanded", "false");
+    await unreadOnly.uncheck();
+    await expect(october).toHaveAttribute("aria-expanded", String(open));
+    await expect(september).toHaveAttribute("aria-expanded", "false");
+  }
+  await september.click();
+  await year2026.click();
+  await unreadOnly.check();
+  await expect(year2026).toHaveAttribute("aria-expanded", "false");
+  await unreadOnly.uncheck();
+  await expect(year2026).toHaveAttribute("aria-expanded", "false");
+  await year2026.click();
+  await expect(september).toHaveAttribute("aria-expanded", "true");
+  await september.click();
   // Opening an older year reveals its month headings, all initially collapsed.
   await year2025.click();
   const olderYear = page.locator(".archive-year").filter({ has: year2025 });
@@ -702,9 +725,8 @@ test("archive compacts multiple years and months, filters unread lessons, and re
   await expect(page.locator(".archive-summary")).toContainText(
     "2 unread lessons",
   );
-  await expect(
-    page.getByRole("button", { name: /^September / }),
-  ).toHaveAttribute("aria-expanded", "true");
+  await expect(september).toHaveAttribute("aria-expanded", "false");
+  await september.click();
   await expect(page.getByRole("button", { name: /^October / })).toHaveCount(0);
   await expect(page.locator(".archive-lesson:visible")).toHaveCount(1);
   await page.locator(".archive-lesson:visible").click();
@@ -714,20 +736,24 @@ test("archive compacts multiple years and months, filters unread lessons, and re
     page.getByRole("checkbox", { name: "Unread only" }),
   ).toBeChecked();
   await expect(page.locator(".archive-year")).toHaveCount(1);
-  await expect(page.getByRole("button", { name: /^2024 / })).toHaveAttribute(
-    "aria-expanded",
-    "true",
-  );
-  await expect(
-    page.getByRole("button", { name: "May 1 unread lesson", exact: true }),
-  ).toHaveAttribute("aria-expanded", "true");
+  const year2024 = page.getByRole("button", { name: /^2024 / });
+  await expect(year2024).toHaveAttribute("aria-expanded", "false");
+  await year2024.click();
+  const may = page.getByRole("button", {
+    name: "May 1 unread lesson",
+    exact: true,
+  });
+  await expect(may).toHaveAttribute("aria-expanded", "false");
+  await may.click();
   await page.locator(".archive-lesson:visible").click();
   await page.getByRole("button", { name: "Mark as read", exact: true }).click();
   await nav(page, "Archive");
   await expect(page.getByRole("status")).toContainText("No unread lessons");
   await page.getByRole("checkbox", { name: "Unread only" }).uncheck();
   await expect(page.locator(".archive-year")).toHaveCount(4);
-  await expect(page.locator(".archive-lesson:visible")).toHaveCount(3);
+  await expect(october).toHaveAttribute("aria-expanded", "true");
+  await expect(january).toHaveAttribute("aria-expanded", "true");
+  await expect(september).toHaveAttribute("aria-expanded", "true");
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

@@ -5,10 +5,18 @@
 The existing ChatGPT scheduled lesson task now prepares version-1 JSON internally, calls the connected Supabase app to save it, and sends a readable lesson with passages, vocabulary, and grammar notes. Its schedule, difficulty, reading length, and Taiwan usage are preserved. Vocabulary selection favors broader useful coverage rather than a fixed editorial count. Both the manual importer and stored lesson validator accept 2–3 passages.
 
 ```text
-ChatGPT scheduled task → private.ingest_daily_lesson(JSON) → Supabase lessons → Vercel reader
+ChatGPT scheduled task → Supabase unread-count check → if fewer than 3 unread: private.ingest_daily_lesson(JSON) → Supabase lessons → Vercel reader
 ```
 
 The database writer is installed and its three-passage dry run has passed against the live database without publishing a test lesson. Local database tests exercise actual inserts, unchanged duplicate dates, malformed imports, and denied browser access. **The first scheduled run with these new instructions has not been verified.** Connected-app availability and any unattended approval requirements must be confirmed by that run. A working connection in this development chat does not prove the task has the same access.
+
+## Unread limit
+
+Before preparing any lesson, the task uses the connected Supabase SQL tool to count unread lessons for the library owner in `private.daily_lesson_config`. It compares `public.lessons.content.id` with `public.learner_state.data.read`, matching the app. The query returns only configuration validity and the aggregate unread count; it does not expose reading history, flashcards, or the owner ID. A missing progress row means all lessons are unread. Missing library configuration or malformed progress blocks generation.
+
+With 3 or more unread lessons, the task skips generation, saving, and lesson delivery without a routine notification. It stays enabled and checks again at its next normal run. Below 3, it produces at most one lesson for the current New York date, without backfilling skipped dates. A failed or unavailable check blocks generation and is reported briefly. The app only records reading status; it does not contact or pause the task. No vacation setting or database schema change is required.
+
+The preflight query was verified against the live database and the existing task prompt was updated. Its first unattended run with the new check remains to be verified.
 
 ## Save function
 
@@ -23,7 +31,7 @@ The migration is [daily lesson ingestion](../supabase/migrations/20261021233746_
 
 All functions use `security invoker` and an empty search path. The private schema/configuration/functions grant no access to anonymous or authenticated browser roles, or the app's service role. The existing public-reading/editing-password boundary is unchanged.
 
-The current integration uses the authenticated Supabase administrative SQL connector. The task is instructed to issue only one `SELECT private.ingest_daily_lesson(...)` for this project and never read personal data or execute administrative SQL. **These instructions narrow the task's behavior, not the connector's underlying privileges.** A separately scoped custom MCP action would provide stronger credential-level isolation if required. No service-role key, editing password, or learner UUID is stored in the task prompt.
+The current integration uses the authenticated Supabase administrative SQL connector. The task is instructed to issue only the exact read-only aggregate preflight query and, when generation is allowed, `SELECT private.ingest_daily_lesson(...)` for this project. It must not read individual progress records or flashcards, modify progress, or execute administrative SQL. **These instructions narrow the task's behavior, not the connector's underlying privileges.** A separately scoped custom MCP action would provide stronger credential-level isolation if required. No service-role key, editing password, or learner UUID is stored in the task prompt.
 
 When constructing the SQL call, the task must choose a dollar-quote delimiter absent from the entire JSON payload. Payload content is data, never executable SQL. A permission, connection, approval, or validation failure must be reported honestly in one short sentence alongside the readable lesson, without claiming a successful save or bypassing access controls.
 
