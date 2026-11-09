@@ -62,29 +62,32 @@ export default function DailyReview({
           Next
         </button>
       </div>
-      <button
-        key={card.id}
-        className="flashcard"
-        onClick={() => {
-          if (!visible) onReviewed(card.id);
-          setRevealed((prev) =>
-            visible ? prev.filter((id) => id !== card.id) : [...prev, card.id],
-          );
-        }}
-        aria-label={visible ? "Hide meaning" : "Reveal meaning"}
-        aria-expanded={visible}
-      >
+      <div key={card.id} className="flashcard">
         <h2 lang="zh-Hant">{card.text}</h2>
         <div className="card-pinyin">{card.pinyin}</div>
         {visible ? (
-          <div className="card-answer">
+          <div className="card-answer" id="daily-review-answer">
             <p>{card.meaning}</p>
             <blockquote lang="zh-Hant">{card.sentence}</blockquote>
           </div>
-        ) : (
-          <span className="flip-hint">Reveal meaning</span>
-        )}
-      </button>
+        ) : null}
+        <button
+          type="button"
+          className="flip-hint"
+          onClick={() => {
+            if (!visible) onReviewed(card.id);
+            setRevealed((prev) =>
+              visible
+                ? prev.filter((id) => id !== card.id)
+                : [...prev, card.id],
+            );
+          }}
+          aria-expanded={visible}
+          aria-controls={visible ? "daily-review-answer" : undefined}
+        >
+          {visible ? "Hide meaning" : "Reveal meaning"}
+        </button>
+      </div>
       <div className="session-card-actions">
         <CardArchiveButton card={card} onChange={onStatusChange} />
       </div>

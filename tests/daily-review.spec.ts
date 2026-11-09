@@ -261,7 +261,9 @@ test("flashcards keep their dimensions and word position on reveal, with scrolli
     const flashcard = page.locator(".flashcard");
     const before = (await flashcard.boundingBox())!;
     const wordBefore = (await flashcard.locator("h2").boundingBox())!;
-    await flashcard.click();
+    await flashcard
+      .getByRole("button", { name: "Reveal meaning", exact: true })
+      .click();
     const after = (await flashcard.boundingBox())!;
     const wordAfter = (await flashcard.locator("h2").boundingBox())!;
     expect(after.height).toBe(before.height);

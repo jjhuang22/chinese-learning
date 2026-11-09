@@ -85,11 +85,9 @@ export default function Review({
                   }}
                 />
               </div>
-              <button
+              <div
                 key={currentCard.id}
                 className={`flashcard ${flipped ? "flipped" : ""}`}
-                onClick={() => setFlipped((v) => !v)}
-                aria-label={flipped ? "Hide meaning" : "Reveal meaning"}
               >
                 <span className="kind">
                   {currentCard.kind === "grammar"
@@ -99,18 +97,24 @@ export default function Review({
                 <h2 lang="zh-Hant">{currentCard.text}</h2>
                 <div className="card-pinyin">{currentCard.pinyin}</div>
                 {flipped ? (
-                  <div className="card-answer">
+                  <div className="card-answer" id="review-answer">
                     <p>{currentCard.meaning}</p>
                     <blockquote lang="zh-Hant">
                       {currentCard.sentence}
                     </blockquote>
                   </div>
-                ) : (
-                  <span className="flip-hint">
-                    Tap to reveal meaning & context <RotateCcw size={15} />
-                  </span>
-                )}
-              </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="flip-hint"
+                  onClick={() => setFlipped((v) => !v)}
+                  aria-expanded={flipped}
+                  aria-controls={flipped ? "review-answer" : undefined}
+                >
+                  {flipped ? "Hide meaning" : "Reveal meaning"}{" "}
+                  <RotateCcw size={15} />
+                </button>
+              </div>
               {flipped ? (
                 <div className="rating-buttons">
                   <button className="secondary" onClick={() => rate(false)}>

@@ -146,6 +146,70 @@ test("saved phrases can be unsaved from suggestions and the dialog, then saved a
   await expect(page.locator(".deck-word")).toHaveCount(1);
   await expect(page.locator(".deck-word")).toContainText("觀望");
 });
+for (const reviewPage of ["Home", "Review"]) {
+  test(`${reviewPage} review text can be selected without revealing or hiding the meaning`, async ({
+    page,
+    isMobile,
+  }) => {
+    await page.goto("/");
+    await openDailyLesson(page);
+    await page
+      .locator(".suggestion-card")
+      .first()
+      .getByRole("button", { name: "Save flashcard", exact: true })
+      .click();
+    await nav(page, reviewPage);
+    await page.getByRole("button", { name: "Start review" }).click();
+
+    const reveal = page.getByRole("button", {
+      name: "Reveal meaning",
+      exact: true,
+    });
+    const selectText = async (selector: string) => {
+      const text = page.locator(selector);
+      if (isMobile) {
+        // Native long-press selection is OS-controlled; check selectable styling
+        // and preserve a browser selection through the text's click event.
+        await text.evaluate((element) => {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          window.getSelection()!.removeAllRanges();
+          window.getSelection()!.addRange(range);
+        });
+      } else {
+        await text.click({ clickCount: 3 });
+      }
+      const selected = await page.evaluate(() =>
+        window.getSelection()?.toString().trim(),
+      );
+      expect(selected).toContain((await text.textContent())!.trim());
+      expect(await text.evaluate((el) => getComputedStyle(el).userSelect)).toBe(
+        "text",
+      );
+      await text.dispatchEvent("click");
+      expect(
+        await page.evaluate(() => window.getSelection()?.toString().trim()),
+      ).toBe(selected);
+    };
+
+    await selectText(".flashcard h2");
+    await selectText(".card-pinyin");
+    await expect(page.locator(".card-answer")).toHaveCount(0);
+    await expect(reveal).toHaveAttribute("aria-expanded", "false");
+    await reveal.click();
+    await selectText(".card-answer blockquote");
+    await selectText(".card-answer p");
+    const hide = page.getByRole("button", {
+      name: "Hide meaning",
+      exact: true,
+    });
+    await expect(hide).toHaveAttribute("aria-expanded", "true");
+    await hide.click();
+    await expect(page.locator(".card-answer")).toHaveCount(0);
+    await expect(reveal).toBeVisible();
+  });
+}
+
 test("arbitrary selected phrases become editable contextual cards", async ({
   page,
 }) => {
