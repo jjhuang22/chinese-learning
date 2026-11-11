@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 // A text selection gesture must never count as a card flip.
 export default function SelectableFlashcard({
@@ -11,7 +11,6 @@ export default function SelectableFlashcard({
   className?: string;
   onToggle: () => void;
 }) {
-  const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gesture = useRef({
     x: 0,
     y: 0,
@@ -19,17 +18,11 @@ export default function SelectableFlashcard({
     selecting: false,
     moved: false,
   });
-  function cancelPending() {
-    if (pending.current) clearTimeout(pending.current);
-    pending.current = null;
-  }
-  useEffect(() => cancelPending, []);
 
   return (
     <div
       className={`flashcard ${className}`.trim()}
       onPointerDown={(event) => {
-        cancelPending();
         gesture.current = {
           x: event.clientX,
           y: event.clientY,
@@ -49,28 +42,26 @@ export default function SelectableFlashcard({
       }}
       onPointerCancel={() => {
         gesture.current.moved = true;
-        cancelPending();
       }}
-      onDoubleClick={cancelPending}
-      onScroll={cancelPending}
+      onScroll={() => {
+        gesture.current.moved = true;
+      }}
       onClick={(event) => {
-        cancelPending();
+        // Share this marker with the cursor styles so text areas never flip.
         // The dedicated button handles its own click, including keyboard use.
-        if ((event.target as HTMLElement).closest("button")) return;
+        if ((event.target as Element).closest("button, [data-flashcard-text]"))
+          return;
         const { selecting, moved, started } = gesture.current;
         if (
           event.detail > 1 ||
+          event.button !== 0 ||
           selecting ||
           moved ||
           Date.now() - started > 500 ||
           window.getSelection()?.toString()
         )
           return;
-        // Give double/triple clicks time to select text before flipping.
-        pending.current = setTimeout(() => {
-          pending.current = null;
-          if (!window.getSelection()?.toString()) onToggle();
-        }, 300);
+        onToggle();
       }}
     >
       {children}

@@ -96,10 +96,18 @@ export default function Review({
                     ? "GRAMMAR PATTERN"
                     : "EXPRESSION"}
                 </span>
-                <h2 lang="zh-Hant">{currentCard.text}</h2>
-                <div className="card-pinyin">{currentCard.pinyin}</div>
+                <h2 lang="zh-Hant" data-flashcard-text>
+                  {currentCard.text}
+                </h2>
+                <div className="card-pinyin" data-flashcard-text>
+                  {currentCard.pinyin}
+                </div>
                 {flipped ? (
-                  <div className="card-answer" id="review-answer">
+                  <div
+                    className="card-answer"
+                    id="review-answer"
+                    data-flashcard-text
+                  >
                     <p>{currentCard.meaning}</p>
                     <blockquote lang="zh-Hant">
                       {currentCard.sentence}

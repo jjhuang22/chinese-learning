@@ -70,10 +70,18 @@ export default function DailyReview({
         </button>
       </div>
       <SelectableFlashcard key={card.id} onToggle={toggleMeaning}>
-        <h2 lang="zh-Hant">{card.text}</h2>
-        <div className="card-pinyin">{card.pinyin}</div>
+        <h2 lang="zh-Hant" data-flashcard-text>
+          {card.text}
+        </h2>
+        <div className="card-pinyin" data-flashcard-text>
+          {card.pinyin}
+        </div>
         {visible ? (
-          <div className="card-answer" id="daily-review-answer">
+          <div
+            className="card-answer"
+            id="daily-review-answer"
+            data-flashcard-text
+          >
             <p>{card.meaning}</p>
             <blockquote lang="zh-Hant">{card.sentence}</blockquote>
           </div>

@@ -209,15 +209,43 @@ for (const reviewPage of ["Home", "Review"]) {
     await expect(reveal).toBeVisible();
     await page.evaluate(() => window.getSelection()?.removeAllRanges());
 
-    // Broad card clicks and ordinary text clicks flip; selection gestures don't.
+    // Hand cursors toggle; text cursors only select, on both sides of the card.
     const flashcard = page.locator(".flashcard");
+    expect(await flashcard.evaluate((el) => getComputedStyle(el).cursor)).toBe(
+      "pointer",
+    );
+    expect(await reveal.evaluate((el) => getComputedStyle(el).cursor)).toBe(
+      "pointer",
+    );
+    for (const selector of [".flashcard h2", ".card-pinyin"]) {
+      const text = page.locator(selector);
+      expect(await text.evaluate((el) => getComputedStyle(el).cursor)).toBe(
+        "text",
+      );
+      await text.click();
+      await page.waitForTimeout(400);
+      await expect(page.locator(".card-answer")).toHaveCount(0);
+    }
     if (isMobile) {
       await flashcard.tap({ position: { x: 20, y: 20 } });
     } else {
       await flashcard.click({ position: { x: 20, y: 20 } });
     }
     await expect(page.locator(".card-answer")).toBeVisible();
-    await page.locator(".card-pinyin").click();
+    for (const selector of [
+      ".card-pinyin",
+      ".card-answer p",
+      ".card-answer blockquote",
+    ]) {
+      const text = page.locator(selector);
+      expect(await text.evaluate((el) => getComputedStyle(el).cursor)).toBe(
+        "text",
+      );
+      await text.click();
+      await page.waitForTimeout(400);
+      await expect(page.locator(".card-answer")).toBeVisible();
+    }
+    await flashcard.click({ position: { x: 20, y: 20 } });
     await expect(page.locator(".card-answer")).toHaveCount(0);
     if (!isMobile) {
       await flashcard.locator("h2").dblclick();
