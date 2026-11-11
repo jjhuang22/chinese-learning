@@ -1,5 +1,6 @@
 "use client";
 import CardArchiveButton from "./card-archive-button";
+import SelectableFlashcard from "./selectable-flashcard";
 import { useState } from "react";
 import { Card, StudyState } from "@/lib/model";
 
@@ -35,6 +36,12 @@ export default function DailyReview({
       </section>
     );
   const visible = revealed.includes(card.id);
+  function toggleMeaning() {
+    if (!visible) onReviewed(card.id);
+    setRevealed((prev) =>
+      visible ? prev.filter((id) => id !== card.id) : [...prev, card.id],
+    );
+  }
   return (
     <section className="review-session daily-review">
       <div className="session-header">
@@ -62,7 +69,7 @@ export default function DailyReview({
           Next
         </button>
       </div>
-      <div key={card.id} className="flashcard">
+      <SelectableFlashcard key={card.id} onToggle={toggleMeaning}>
         <h2 lang="zh-Hant">{card.text}</h2>
         <div className="card-pinyin">{card.pinyin}</div>
         {visible ? (
@@ -74,20 +81,13 @@ export default function DailyReview({
         <button
           type="button"
           className="flip-hint"
-          onClick={() => {
-            if (!visible) onReviewed(card.id);
-            setRevealed((prev) =>
-              visible
-                ? prev.filter((id) => id !== card.id)
-                : [...prev, card.id],
-            );
-          }}
+          onClick={toggleMeaning}
           aria-expanded={visible}
           aria-controls={visible ? "daily-review-answer" : undefined}
         >
           {visible ? "Hide meaning" : "Reveal meaning"}
         </button>
-      </div>
+      </SelectableFlashcard>
       <div className="session-card-actions">
         <CardArchiveButton card={card} onChange={onStatusChange} />
       </div>

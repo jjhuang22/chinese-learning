@@ -1,4 +1,5 @@
 "use client";
+import SelectableFlashcard from "./selectable-flashcard";
 import {
   Layers,
   ArrowRight,
@@ -85,9 +86,10 @@ export default function Review({
                   }}
                 />
               </div>
-              <div
+              <SelectableFlashcard
                 key={currentCard.id}
-                className={`flashcard ${flipped ? "flipped" : ""}`}
+                className={flipped ? "flipped" : ""}
+                onToggle={() => setFlipped((v) => !v)}
               >
                 <span className="kind">
                   {currentCard.kind === "grammar"
@@ -114,7 +116,7 @@ export default function Review({
                   {flipped ? "Hide meaning" : "Reveal meaning"}{" "}
                   <RotateCcw size={15} />
                 </button>
-              </div>
+              </SelectableFlashcard>
               {flipped ? (
                 <div className="rating-buttons">
                   <button className="secondary" onClick={() => rate(false)}>

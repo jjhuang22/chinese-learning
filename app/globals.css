@@ -788,6 +788,7 @@ main {
   background: #7f9b6d;
 }
 .flashcard {
+  cursor: pointer;
   -webkit-user-select: text;
   user-select: text;
   text-align: center;
@@ -811,6 +812,11 @@ main {
   flex-shrink: 0;
   max-width: 100%;
   overflow-wrap: anywhere;
+}
+.flashcard h2,
+.flashcard .card-pinyin,
+.flashcard .card-answer {
+  cursor: text;
 }
 .flashcard h2 {
   font-family: var(--serif);

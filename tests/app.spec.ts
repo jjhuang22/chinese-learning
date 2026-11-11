@@ -207,6 +207,41 @@ for (const reviewPage of ["Home", "Review"]) {
     await hide.click();
     await expect(page.locator(".card-answer")).toHaveCount(0);
     await expect(reveal).toBeVisible();
+    await page.evaluate(() => window.getSelection()?.removeAllRanges());
+
+    // Broad card clicks and ordinary text clicks flip; selection gestures don't.
+    const flashcard = page.locator(".flashcard");
+    if (isMobile) {
+      await flashcard.tap({ position: { x: 20, y: 20 } });
+    } else {
+      await flashcard.click({ position: { x: 20, y: 20 } });
+    }
+    await expect(page.locator(".card-answer")).toBeVisible();
+    await page.locator(".card-pinyin").click();
+    await expect(page.locator(".card-answer")).toHaveCount(0);
+    if (!isMobile) {
+      await flashcard.locator("h2").dblclick();
+      await page.waitForTimeout(400);
+      expect(
+        await page.evaluate(() => window.getSelection()?.toString()),
+      ).toBeTruthy();
+      await expect(page.locator(".card-answer")).toHaveCount(0);
+      await page.evaluate(() => window.getSelection()?.removeAllRanges());
+      const bounds = (await flashcard.locator("h2").boundingBox())!;
+      await page.mouse.move(bounds.x + 2, bounds.y + bounds.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(
+        bounds.x + bounds.width - 2,
+        bounds.y + bounds.height / 2,
+        { steps: 12 },
+      );
+      await page.mouse.up();
+      await page.waitForTimeout(400);
+      expect(
+        await page.evaluate(() => window.getSelection()?.toString()),
+      ).toBeTruthy();
+      await expect(page.locator(".card-answer")).toHaveCount(0);
+    }
   });
 }
 
